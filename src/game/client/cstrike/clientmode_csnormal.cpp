@@ -1423,7 +1423,7 @@ void ClientModeCSNormal::PostRenderVGui()
 			const char *szWeaponName = NULL;
 			if ( V_strcmp( pPanel->m_WeaponName, "fiveseven_cz75" ) == 0 )
 			{
-				szWeaponName = !loadout_slot_fiveseven_weapon.GetBool() ? "weapon_fiveseven" : "weapon_75";
+				szWeaponName = !loadout_slot_fiveseven_weapon.GetBool() ? "weapon_fiveseven" : "weapon_cz75";
 				UpdateBuyMenuImageEntity( szWeaponName, x, y, w, h, pPanel->m_ViewXPos, pPanel->m_ViewYPos, pPanel->m_ViewZPos );
 				return;
 			}
