@@ -1271,9 +1271,9 @@ void UpdateBuyMenuImageEntity(
 	pPlayerModel->SetAbsAngles( QAngle( 0, 180, 0 ) );
 
 	// now set the sequence for this player model
-	if ( pLocalPlayer->GetTeamNumber() == TEAM_TERRORIST && pAnimNameT[0] != NULL )
+	if ( pLocalPlayer->GetTeamNumber() == TEAM_TERRORIST && pAnimNameT != NULL )
 		pPlayerModel->SetSequence( pPlayerModel->LookupSequence( pAnimNameT ) );
-	else
+	else if ( pAnimName != NULL )
 		pPlayerModel->SetSequence( pPlayerModel->LookupSequence( pAnimName ) );
 
 	pPlayerModel->FrameAdvance( gpGlobals->frametime );
