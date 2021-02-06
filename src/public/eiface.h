@@ -307,6 +307,9 @@ public:
 	
 	// Is the game paused?
 	virtual bool		IsPaused() = 0;
+
+	// What is the game timescale multiplied with the host_timescale?
+	virtual float GetTimescale( void ) const = 0;
 	
 	// Marks the filename for consistency checking.  This should be called after precaching the file.
 	virtual void		ForceExactFile( const char *s ) = 0;
@@ -385,6 +388,8 @@ public:
 	// This makes the host run 1 tick per frame instead of checking the system timer to see how many ticks to run in a certain frame.
 	// i.e. it does the same thing timedemo does.
 	virtual void SetDedicatedServerBenchmarkMode( bool bBenchmarkMode ) = 0;
+
+	virtual void SetTimescale( float flTimescale ) = 0;
 
 	// Methods to set/get a gamestats data container so client & server running in same process can send combined data
 	virtual void SetGamestatsData( CGamestatsData *pGamestatsData ) = 0;

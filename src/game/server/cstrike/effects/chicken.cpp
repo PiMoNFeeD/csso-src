@@ -143,8 +143,7 @@ void CChicken::Spawn( void )
 
 	m_flActiveFollowStartTime = 0;
 
-	if ( UTIL_IsNewYear() )
-		SetBodygroup( FindBodygroupByName( "holiday" ), 1 );
+	SetBodygroup( FindBodygroupByName( "holiday" ), UTIL_IsNewYear() );
 
 }
 

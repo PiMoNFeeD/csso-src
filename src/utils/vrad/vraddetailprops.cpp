@@ -24,6 +24,10 @@
 
 bool LoadStudioModel( char const* pModelName, CUtlBuffer& buf );
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+extern float SoftenCosineTerm( float flDot );
+extern float CalculateAmbientOcclusion( Vector *pPosition, Vector *pNormal );
 
 //-----------------------------------------------------------------------------
 // Purpose: Writes a glview text file containing the collision surface in question

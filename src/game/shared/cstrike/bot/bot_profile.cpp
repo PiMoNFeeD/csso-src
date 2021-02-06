@@ -416,6 +416,22 @@ void BotProfileManager::Init( const char *filename, unsigned int *checksum )
 			{
 				profile->m_teamwork = (float)atof(token) / 100.0f;
 			}
+			else if (!stricmp( "AimFocusInitial", attributeName ))
+			{
+				profile->m_aimFocusInitial = (float)atof( token );
+			}
+			else if (!stricmp( "AimFocusDecay", attributeName ))
+			{
+				profile->m_aimFocusDecay = (float)atof( token );
+			}
+			else if (!stricmp( "AimFocusOffsetScale", attributeName ))
+			{
+				profile->m_aimFocusOffsetScale = (float)atof( token );
+			}
+			else if (!stricmp( "AimFocusInterval", attributeName ))
+			{
+				profile->m_aimFocusInterval = (float)atof( token );
+			}
 			else if (!stricmp( "Cost", attributeName ))
 			{
 				profile->m_cost = atoi(token);
@@ -430,35 +446,11 @@ void BotProfileManager::Init( const char *filename, unsigned int *checksum )
 			}
 			else if (!stricmp( "WeaponPreference", attributeName ))
 			{
-				// weapon preferences override parent prefs
-				if (isFirstWeaponPref)
-				{
-					isFirstWeaponPref = false;
-					profile->m_weaponPreferenceCount = 0;
-				}
-
-				if (!stricmp( token, "none" ))
-				{
-					profile->m_weaponPreferenceCount = 0;
-				}
-				else
-				{
-					if (profile->m_weaponPreferenceCount < BotProfile::MAX_WEAPON_PREFS)
-					{
-						profile->m_weaponPreference[ profile->m_weaponPreferenceCount++ ] = AliasToWeaponID( token );
-					}
-				}
+				ParseWeaponPreference( isFirstWeaponPref, profile->m_weaponPreferenceCount, profile->m_weaponPreference, token );
 			}
 			else if (!stricmp( "ReactionTime", attributeName ))
 			{
 				profile->m_reactionTime = (float)atof(token);
-
-#ifndef GAMEUI_EXPORTS
-				// subtract off latency due to "think" update rate.
-				// In GameUI, we don't really care.
-				//profile->m_reactionTime -= g_BotUpdateInterval;
-#endif
-
 			}
 			else if (!stricmp( "AttackDelay", attributeName ))
 			{
@@ -466,25 +458,7 @@ void BotProfileManager::Init( const char *filename, unsigned int *checksum )
 			}
 			else if (!stricmp( "Difficulty", attributeName ))
 			{
-				// override inheritance
-				profile->m_difficultyFlags = 0;
-
-				// parse bit flags
-				while(true)
-				{
-					char *c = strchr( token, '+' );
-					if (c)
-						*c = '\000';
-
-					for( int i=0; i<NUM_DIFFICULTY_LEVELS; ++i )
-						if (!stricmp( BotDifficultyName[i], token ))
-							profile->m_difficultyFlags |= (1 << i);
-
-					if (c == NULL)
-						break;
-					
-					token = c+1;
-				}
+				ParseDifficultySetting( profile->m_difficultyFlags, token );
 			}
 			else if (!stricmp( "Team", attributeName ))
 			{
@@ -500,6 +474,30 @@ void BotProfileManager::Init( const char *filename, unsigned int *checksum )
 				{
 					profile->m_teams = TEAM_UNASSIGNED;
 				}
+			}
+			else if (!stricmp( "LookAngleMaxAccelNormal", attributeName ))
+			{
+				profile->m_lookAngleMaxAccelNormal = atof( token );
+			}
+			else if (!stricmp( "LookAngleStiffnessNormal", attributeName ))
+			{
+				profile->m_lookAngleStiffnessNormal = atof( token );
+			}
+			else if (!stricmp( "LookAngleDampingNormal", attributeName ))
+			{
+				profile->m_lookAngleDampingNormal = atof( token );
+			}
+			else if (!stricmp( "LookAngleMaxAccelAttacking", attributeName ))
+			{
+				profile->m_lookAngleMaxAccelAttacking = atof( token );
+			}
+			else if (!stricmp( "LookAngleStiffnessAttacking", attributeName ))
+			{
+				profile->m_lookAngleStiffnessAttacking = atof( token );
+			}
+			else if (!stricmp( "LookAngleDampingAttacking", attributeName ))
+			{
+				profile->m_lookAngleDampingAttacking = atof( token );
 			}
 			else
 			{
@@ -523,6 +521,59 @@ void BotProfileManager::Init( const char *filename, unsigned int *checksum )
 	}
 
 	delete [] dataPointer;
+}
+
+void BotProfileManager::ParseDifficultySetting( unsigned char &difficultyFlags, char* token)
+{
+	// override inheritance
+	difficultyFlags = 0;
+
+	// parse bit flags
+	while(true)
+	{
+		char *c = strchr( token, '+' );
+		if (c)
+		{
+			*c = '\000';
+		}
+
+		for( int i=0; i<NUM_DIFFICULTY_LEVELS; ++i )
+		{
+			if ( !stricmp( BotDifficultyName[i], token ))
+			{
+				difficultyFlags |= (1 << i);
+			}
+		}
+
+		if (c == NULL)
+		{
+			break;
+		}
+					
+		token = c+1;
+	}
+}
+
+void BotProfileManager::ParseWeaponPreference( bool &isFirstWeaponPref, int &weaponPreferenceCount, CSWeaponID* weaponPreference, char* token )
+{
+	// weapon preferences override parent prefs
+	if (isFirstWeaponPref)
+	{
+		isFirstWeaponPref = false;
+		weaponPreferenceCount = 0;
+	}
+
+	if ( !stricmp( token, "none" ))
+	{
+		weaponPreferenceCount = 0;
+	}
+	else
+	{
+		if (weaponPreferenceCount < BotProfile::MAX_WEAPON_PREFS)
+		{
+			weaponPreference[ weaponPreferenceCount++ ] = AliasToWeaponID( token );
+		}
+	}
 }
 
 //--------------------------------------------------------------------------------------------------------------

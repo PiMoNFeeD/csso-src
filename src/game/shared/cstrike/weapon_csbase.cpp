@@ -1284,6 +1284,9 @@ void CWeaponCSBase::Precache( void )
 	if ( GetCSWpnData().m_szAddonModel[0] != 0 )
 		PrecacheModel( GetCSWpnData().m_szAddonModel );
 
+	if ( GetCSWpnData().m_szEjectBrassEffect[0] != 0 )
+		PrecacheParticleSystem( GetCSWpnData().m_szEjectBrassEffect );
+
 	if ( GetTracerType()[0] != 0 )
 		PrecacheParticleSystem( GetTracerType() );
 	
@@ -1941,15 +1944,17 @@ ConVar cl_cam_driver_compensation_scale( "cl_cam_driver_compensation_scale", "0.
 	}
 
 #ifdef CLIENT_DLL
-	int CWeaponCSBase::GetMuzzleAttachmentIndex( C_BaseAnimating* pAnimating )
+	int CWeaponCSBase::GetMuzzleAttachmentIndex( C_BaseAnimating* pAnimating, bool isThirdPerson )
 	{
 		if ( pAnimating )
 		{
 			if ( IsSilenced() )
-			{
 				return pAnimating->LookupAttachment( "muzzle_flash2" );
-			}
-			return pAnimating->LookupAttachment( "1" );
+
+			if ( isThirdPerson )
+				return pAnimating->LookupAttachment( "muzzle_flash" );
+			else
+				return pAnimating->LookupAttachment( "1" );
 		}
 		return -1;
 	}
@@ -1964,6 +1969,19 @@ ConVar cl_cam_driver_compensation_scale( "cl_cam_driver_compensation_scale", "0.
 		{
 			return bThirdPerson ? GetCSWpnData().m_szMuzzleFlash3rdPerson : GetCSWpnData().m_szMuzzleFlash1stPerson;
 		}
+	}
+
+	int CWeaponCSBase::GetEjectBrassAttachmentIndex( C_BaseAnimating* pAnimating, bool isThirdPerson )
+	{
+		if ( pAnimating )
+		{
+			if ( isThirdPerson )
+				return pAnimating->LookupAttachment( "shell_eject" );
+			else
+				return pAnimating->LookupAttachment( "2" );
+		}
+
+		return -1;
 	}
 #endif
 
@@ -2012,6 +2030,39 @@ ConVar cl_cam_driver_compensation_scale( "cl_cam_driver_compensation_scale", "0.
 				}
 
 				UpdateGunHeat( GetCSWpnData().m_flHeatPerShot, iAttachmentIndex );
+			}
+
+			return true;
+		}
+		else if ( event == AE_CLIENT_EJECT_BRASS )
+		{
+			C_CSPlayer *pPlayer = ToCSPlayer( GetOwner() );
+			if ( pPlayer && pPlayer->GetFOV() < pPlayer->GetDefaultFOV() )
+				return true;
+
+			Vector origin;
+			const char *pszEffect = GetCSWpnData().m_szEjectBrassEffect;
+			int iAttachmentIndex = -1;
+
+			// If options is non-zero in length, treat as an attachment name to use for this particle effect.
+			if ( options && Q_strlen( options ) > 0 )
+			{
+				iAttachmentIndex = pViewModel->LookupAttachment( options );
+			}
+			else
+			{
+				iAttachmentIndex = GetEjectBrassAttachmentIndex( pViewModel );
+			}
+
+			if ( pszEffect && Q_strlen( pszEffect ) > 0 && iAttachmentIndex >= 0 )
+			{
+
+				C_BasePlayer* pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+				bool bLocalThirdPerson = ((pPlayer == pLocalPlayer) && pPlayer->ShouldDraw());
+
+				// The view model fixes up the split screen visibility of any effects spawned off of it.
+				if ( !bLocalThirdPerson )
+					DispatchParticleEffect( pszEffect, PATTACH_POINT_FOLLOW, pViewModel, iAttachmentIndex, false );
 			}
 
 			return true;

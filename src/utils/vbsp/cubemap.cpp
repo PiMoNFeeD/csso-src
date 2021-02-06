@@ -185,83 +185,6 @@ static const char *FindDependentMaterial( const char *pMaterialName, const char 
 	return NULL;
 }
 
-
-//-----------------------------------------------------------------------------
-// Loads VTF files
-//-----------------------------------------------------------------------------
-static bool LoadSrcVTFFiles( IVTFTexture *pSrcVTFTextures[6], const char *pSkyboxMaterialBaseName,
-							int *pUnionTextureFlags, bool bHDR )
-{
-	const char *facingName[6] = { "rt", "lf", "bk", "ft", "up", "dn" };
-	int i;
-	for( i = 0; i < 6; i++ )
-	{
-		char srcMaterialName[1024];
-		sprintf( srcMaterialName, "%s%s", pSkyboxMaterialBaseName, facingName[i] );
-
-		IMaterial *pSkyboxMaterial = g_pMaterialSystem->FindMaterial( srcMaterialName, "skybox" );
-		//IMaterialVar *pSkyTextureVar = pSkyboxMaterial->FindVar( bHDR ? "$hdrbasetexture" : "$basetexture", NULL ); //, bHDR ? false : true );
-		IMaterialVar *pSkyTextureVar = pSkyboxMaterial->FindVar( "$basetexture", NULL ); // Since we're setting it to black anyway, just use $basetexture for HDR
-		const char *vtfName = pSkyTextureVar->GetStringValue();
-		char srcVTFFileName[MAX_PATH];
-		Q_snprintf( srcVTFFileName, MAX_PATH, "materials/%s.vtf", vtfName );
-
-		CUtlBuffer buf;
-		if ( !g_pFullFileSystem->ReadFile( srcVTFFileName, NULL, buf ) )
-		{
-			// Try looking for a compressed HDR texture
-			if ( bHDR )
-			{
-				/* // FIXME: We need a way to uncompress this format!
-				bool bHDRCompressed = true;
-
-				pSkyTextureVar = pSkyboxMaterial->FindVar( "$hdrcompressedTexture", NULL );
-				vtfName = pSkyTextureVar->GetStringValue();
-				Q_snprintf( srcVTFFileName, MAX_PATH, "materials/%s.vtf", vtfName );
-
-				if ( !g_pFullFileSystem->ReadFile( srcVTFFileName, NULL, buf ) )
-				*/
-				{
-					return false;
-				}
-			}
-			else
-			{
-				return false;
-			}
-		}
-
-		pSrcVTFTextures[i] = CreateVTFTexture();
-		if (!pSrcVTFTextures[i]->Unserialize(buf))
-		{
-			Warning("*** Error unserializing skybox texture: %s\n", pSkyboxMaterialBaseName );
-			return false;
-		}
-
-		*pUnionTextureFlags |= pSrcVTFTextures[i]->Flags();
-		int flagsNoAlpha = pSrcVTFTextures[i]->Flags() & ~( TEXTUREFLAGS_EIGHTBITALPHA | TEXTUREFLAGS_ONEBITALPHA );
-		int flagsFirstNoAlpha = pSrcVTFTextures[0]->Flags() & ~( TEXTUREFLAGS_EIGHTBITALPHA | TEXTUREFLAGS_ONEBITALPHA );
-		
-		// NOTE: texture[0] is a side texture that could be 1/2 height, so allow this and also allow 4x4 faces
-		if ( ( ( pSrcVTFTextures[i]->Width() != pSrcVTFTextures[0]->Width() ) && ( pSrcVTFTextures[i]->Width() != 4 ) ) ||
-			 ( ( pSrcVTFTextures[i]->Height() != pSrcVTFTextures[0]->Height() ) && ( pSrcVTFTextures[i]->Height() != pSrcVTFTextures[0]->Height()*2 )  && ( pSrcVTFTextures[i]->Height() != 4 ) ) ||
-			 ( flagsNoAlpha != flagsFirstNoAlpha ) )
-		{
-			Warning("*** Error: Skybox vtf files for %s weren't compiled with the same size texture and/or same flags!\n", pSkyboxMaterialBaseName );
-			return false;
-		}
-
-		if ( bHDR )
-		{
-			pSrcVTFTextures[i]->ConvertImageFormat( IMAGE_FORMAT_RGB323232F, false );
-			pSrcVTFTextures[i]->GenerateMipmaps();
-			pSrcVTFTextures[i]->ConvertImageFormat( IMAGE_FORMAT_RGBA16161616F, false );
-		}
-	}
-
-	return true;
-}
-
 void VTFNameToHDRVTFName( const char *pSrcName, char *pDest, int maxLen, bool bHDR )
 {
 	Q_strncpy( pDest, pSrcName, maxLen );
@@ -283,46 +206,10 @@ void CreateDefaultCubemaps( bool bHDR )
 {
 	memset( g_IsCubemapTexData, 0, sizeof(g_IsCubemapTexData) );
 
-	// NOTE: This implementation depends on the fact that all VTF files contain
-	// all mipmap levels
-	const char *pSkyboxBaseName = FindSkyboxMaterialName();
-	char skyboxMaterialName[MAX_PATH];
-	Q_snprintf( skyboxMaterialName, MAX_PATH, "skybox/%s", pSkyboxBaseName );
-
-	IVTFTexture *pSrcVTFTextures[6];
-
-	if ( !skyboxMaterialName )
-	{
-		if( s_DefaultCubemapNames.Count() )
-		{
-			Warning( "This map uses env_cubemap, and you don't have a skybox, so no default env_cubemaps will be generated.\n" );
-		}
-		return;
-	}
-
-	int unionTextureFlags = 0;
-	if( !LoadSrcVTFFiles( pSrcVTFTextures, skyboxMaterialName, &unionTextureFlags, bHDR ) )
-	{
-		Warning( "Can't load skybox file %s to build the default cubemap!\n", skyboxMaterialName );
-		return;
-	}
-	Msg( "Creating default %scubemaps for env_cubemap using skybox materials:\n   %s*.vmt\n"
-		" ! Run buildcubemaps in the engine to get the correct cube maps.\n", bHDR ? "HDR " : "LDR ", skyboxMaterialName );
-			
-	// Figure out the mip differences between the two textures
-	int iMipLevelOffset = 0;
-	int tmp = pSrcVTFTextures[0]->Width();
-	while( tmp > DEFAULT_CUBEMAP_SIZE )
-	{
-		iMipLevelOffset++;
-		tmp >>= 1;
-	}
-
 	// Create the destination cubemap
 	IVTFTexture *pDstCubemap = CreateVTFTexture();
 	pDstCubemap->Init( DEFAULT_CUBEMAP_SIZE, DEFAULT_CUBEMAP_SIZE, 1,
-		pSrcVTFTextures[0]->Format(), unionTextureFlags | TEXTUREFLAGS_ENVMAP, 
-		pSrcVTFTextures[0]->FrameCount() );
+		IMAGE_FORMAT_DEFAULT, TEXTUREFLAGS_ENVMAP, 1 );
 
 	// First iterate over all frames
 	for (int iFrame = 0; iFrame < pDstCubemap->FrameCount(); ++iFrame)
@@ -333,101 +220,19 @@ void CreateDefaultCubemaps( bool bHDR )
 			// Finally, iterate over all mip levels in the *destination*
 			for (int iMip = 0; iMip < pDstCubemap->MipCount(); ++iMip )
 			{
-				// Copy the bits from the source images into the cube faces
-				unsigned char *pSrcBits = pSrcVTFTextures[iFace]->ImageData( iFrame, 0, iMip + iMipLevelOffset );
 				unsigned char *pDstBits = pDstCubemap->ImageData( iFrame, iFace, iMip );
 				int iSize = pDstCubemap->ComputeMipSize( iMip );
-				int iSrcMipSize = pSrcVTFTextures[iFace]->ComputeMipSize( iMip + iMipLevelOffset );
-
-				// !!! FIXME: Set this to black until HDR cubemaps are built properly!
+				// Make the default cubemap black
 				memset( pDstBits, 0, iSize );
-				continue;
-
-				if ( ( pSrcVTFTextures[iFace]->Width() == 4 ) && ( pSrcVTFTextures[iFace]->Height() == 4 ) ) // If texture is 4x4 square
-				{
-					// Force mip level 2 to get the 1x1 face
-					unsigned char *pSrcBits = pSrcVTFTextures[iFace]->ImageData( iFrame, 0, 2 );
-					int iSrcMipSize = pSrcVTFTextures[iFace]->ComputeMipSize( 2 );
-
-					// Replicate 1x1 mip level across entire face
-					//memset( pDstBits, 0, iSize ); 
-					for ( int i = 0; i < ( iSize / iSrcMipSize ); i++ )
-					{
-						memcpy( pDstBits + ( i * iSrcMipSize ), pSrcBits, iSrcMipSize ); 
-					}
-				}
-				else if ( pSrcVTFTextures[iFace]->Width() == pSrcVTFTextures[iFace]->Height() ) // If texture is square
-				{
-					if ( iSrcMipSize != iSize )
-					{
-						Warning( "%s - ERROR! Cannot copy square face for default cubemap! iSrcMipSize(%d) != iSize(%d)\n", skyboxMaterialName, iSrcMipSize, iSize );
-						memset( pDstBits, 0, iSize );
-					}
-					else
-					{
-						// Just copy the mip level
-						memcpy( pDstBits, pSrcBits, iSize ); 
-					}
-				}
-				else if ( pSrcVTFTextures[iFace]->Width() == pSrcVTFTextures[iFace]->Height()*2 ) // If texture is rectangle 2x wide
-				{
-					int iMipWidth, iMipHeight, iMipDepth;
-					pDstCubemap->ComputeMipLevelDimensions( iMip, &iMipWidth, &iMipHeight, &iMipDepth );
-					if ( ( iMipHeight > 1 ) && ( iSrcMipSize*2 != iSize ) )
-					{
-						Warning( "%s - ERROR building default cube map! %d*2 != %d\n", skyboxMaterialName, iSrcMipSize, iSize );
-						memset( pDstBits, 0, iSize );
-					}
-					else
-					{
-						// Copy row at a time and repeat last row
-						memcpy( pDstBits, pSrcBits, iSize/2 ); 
-						//memcpy( pDstBits + iSize/2, pSrcBits, iSize/2 );
-						int nSrcRowSize = pSrcVTFTextures[iFace]->RowSizeInBytes( iMip + iMipLevelOffset );
-						int nDstRowSize = pDstCubemap->RowSizeInBytes( iMip );
-						if ( nSrcRowSize != nDstRowSize )
-						{
-							Warning( "%s - ERROR building default cube map! nSrcRowSize(%d) != nDstRowSize(%d)!\n", skyboxMaterialName, nSrcRowSize, nDstRowSize );
-							memset( pDstBits, 0, iSize );
-						}
-						else
-						{
-							for ( int i = 0; i < ( iSize/2 / nSrcRowSize ); i++ )
-							{
-								memcpy( pDstBits + iSize/2 + i*nSrcRowSize, pSrcBits + iSrcMipSize - nSrcRowSize, nSrcRowSize );
-							}
-						}
-					}
-				}
-				else
-				{
-					// ERROR! This code only supports square and rectangluar 2x wide
-					Warning( "%s - Couldn't create default cubemap because texture res is %dx%d\n", skyboxMaterialName, pSrcVTFTextures[iFace]->Width(), pSrcVTFTextures[iFace]->Height() );
-					memset( pDstBits, 0, iSize );
-					return;
-				}
 			}
 		}
 	}
 
-	ImageFormat originalFormat = pDstCubemap->Format();
-	if( !bHDR )
-	{
-		// Convert the cube to format that we can apply tools to it...
-		pDstCubemap->ConvertImageFormat( IMAGE_FORMAT_DEFAULT, false );
-	}
-
-	// Fixup the cubemap facing
-	pDstCubemap->FixCubemapFaceOrientation();
-
 	// Now that the bits are in place, compute the spheremaps...
 	pDstCubemap->GenerateSpheremap();
 
-	if( !bHDR )
-	{
-		// Convert the cubemap to the final format
-		pDstCubemap->ConvertImageFormat( originalFormat, false );
-	}
+	// Convert the cubemap to the final format
+	pDstCubemap->ConvertImageFormat( bHDR ? IMAGE_FORMAT_RGBA16161616F : IMAGE_FORMAT_DXT5, false );
 
 	// Write the puppy out!
 	char dstVTFFileName[1024];
@@ -465,11 +270,6 @@ void CreateDefaultCubemaps( bool bHDR )
 		AddBufferToPak( pak, vtfName, outputBuf.Base(),outputBuf.TellPut(), false );
 	}
 
-	// Clean up the textures
-	for( i = 0; i < 6; i++ )
-	{
-		DestroyVTFTexture( pSrcVTFTextures[i] );
-	}
 	DestroyVTFTexture( pDstCubemap );
 }	
 

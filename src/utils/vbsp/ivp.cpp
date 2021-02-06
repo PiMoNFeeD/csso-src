@@ -432,7 +432,7 @@ public:
 
 private:
 
-	CPhysConvex *BuildConvexForBrush( int brushnumber, float shrink, CPhysCollide *pCollideTest, float shrinkMinimum );
+	CPhysConvex *CPlaneList::BuildConvexForBrush( int brushnumber, float shrink, CPhysCollide *pCollideTest, float shrinkMinimum );
 
 public:
 	CUtlVector<CPhysConvex *>	m_convex;
@@ -1054,7 +1054,7 @@ static void Flood_FindConnectedWaterVolumes_r( CUtlVector<node_t *> &list, node_
 	visited.Set( pLeaf->diskId );
 	list.AddToTail( pLeaf );
 
-	baseleaf.minZ = min( pLeaf->mins.z, baseleaf.minZ );
+	baseleaf.minZ = MIN( pLeaf->mins.z, baseleaf.minZ );
 
 	for (portal_t *p = pLeaf->portals ; p ; p = p->next[!oppositeNodeIndex])
 	{
@@ -1313,15 +1313,10 @@ static void ConvertWorldBrushesToPhysCollide( CUtlVector<CPhysCollisionEntry *> 
 // adds any world, terrain, and water collision models to the collision list
 static void BuildWorldPhysModel( CUtlVector<CPhysCollisionEntry *> &collisionList, float shrinkSize, float mergeTolerance )
 {
-	ConvertWorldBrushesToPhysCollide( collisionList, shrinkSize, mergeTolerance, MASK_SOLID );
+	ConvertWorldBrushesToPhysCollide( collisionList, shrinkSize, mergeTolerance, MASK_SOLID & (~CONTENTS_GRATE) );
+	ConvertWorldBrushesToPhysCollide( collisionList, shrinkSize, mergeTolerance, CONTENTS_GRATE );
 	ConvertWorldBrushesToPhysCollide( collisionList, shrinkSize, mergeTolerance, CONTENTS_PLAYERCLIP );
 	ConvertWorldBrushesToPhysCollide( collisionList, shrinkSize, mergeTolerance, CONTENTS_MONSTERCLIP );
-
-	if ( !g_bNoVirtualMesh && Disp_HasPower4Displacements() )
-	{
-		Warning("WARNING: Map using power 4 displacements, terrain physics cannot be compressed, map will need additional memory and CPU.\n");
-		g_bNoVirtualMesh = true;
-	}
 
 	// if there's terrain, save it off as a static mesh/polysoup
 	if ( g_bNoVirtualMesh || !physcollision->SupportsVirtualMesh() )

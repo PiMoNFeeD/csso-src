@@ -111,6 +111,8 @@ void CL_GetBackgroundLevelName( char *pszBackgroundName, int bufSize, bool bMapN
 CreateInterfaceFn g_ClientFactory = NULL;
 extern	CGlobalVars g_ServerGlobalVariables;
 
+extern ConVar host_timescale;
+
 //-----------------------------------------------------------------------------
 // globals
 //-----------------------------------------------------------------------------
@@ -486,6 +488,7 @@ public:
 	virtual float GetDemoPlaybackTimeScale( void );
 	virtual int  GetDemoPlaybackTotalTicks( void );
 	virtual bool IsPaused( void );
+	virtual float GetTimescale( void ) const;
 	virtual bool IsTakingScreenshot( void );
 	virtual bool IsHLTV( void );
 	virtual void GetVideoModes( int &nCount, vmode_s *&pModes );
@@ -538,6 +541,8 @@ public:
 
 	virtual bool		REMOVED_SteamRefreshLogin( const char *password, bool isSecure ) { return false; }
 	virtual bool		REMOVED_SteamProcessCall( bool & finished ) { return false; }
+
+	virtual void SetTimescale( float flTimescale );
 
 	virtual void SetGamestatsData( CGamestatsData *pGamestatsData );
 	virtual CGamestatsData *GetGamestatsData();
@@ -1310,6 +1315,11 @@ bool CEngineClient::IsPaused( void )
 	return cl.IsPaused();
 }
 
+float  CEngineClient::GetTimescale( void ) const
+{
+	return sv.GetTimescale() * host_timescale.GetFloat();
+}
+
 bool CEngineClient::IsTakingScreenshot( void )
 {
 	return cl_takesnapshot;
@@ -1576,6 +1586,10 @@ void CEngineClient::ResetDemoInterpolation( void )
 		demoplayer->ResetDemoInterpolation();
 }
 
+void CEngineClient::SetTimescale( float flTimescale )
+{
+	sv.SetTimescale( flTimescale );
+}
 
 extern CGamestatsData *g_pGamestatsData;
 void CEngineClient::SetGamestatsData( CGamestatsData *pGamestatsData )

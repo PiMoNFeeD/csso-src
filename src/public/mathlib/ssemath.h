@@ -2742,6 +2742,25 @@ public:
 
 };
 
+//
+inline FourVectors Mul( const FourVectors &a, const fltx4 &b )
+{
+	FourVectors ret;
+	ret.x = MulSIMD( a.x, b );
+	ret.y = MulSIMD( a.y, b );
+	ret.z = MulSIMD( a.z, b );
+	return ret;
+}
+
+inline FourVectors Mul( const FourVectors &a, const FourVectors &b )
+{
+	FourVectors ret;
+	ret.x = MulSIMD( a.x, b.x );
+	ret.y = MulSIMD( a.y, b.y );
+	ret.z = MulSIMD( a.z, b.z );
+	return ret;
+}
+
 inline FourVectors Madd( const FourVectors &a, const fltx4 &b, const FourVectors &c )	// a*b + c
 {
 	FourVectors ret;
@@ -2767,6 +2786,15 @@ inline FourVectors operator-(const FourVectors &a, const FourVectors &b)
 	ret.x=SubSIMD(a.x,b.x);
 	ret.y=SubSIMD(a.y,b.y);
 	ret.z=SubSIMD(a.z,b.z);
+	return ret;
+}
+
+inline FourVectors operator+( const FourVectors &a, const FourVectors &b )
+{
+	FourVectors ret;
+	ret.x = AddSIMD( a.x, b.x );
+	ret.y = AddSIMD( a.y, b.y );
+	ret.z = AddSIMD( a.z, b.z );
 	return ret;
 }
 

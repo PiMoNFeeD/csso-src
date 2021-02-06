@@ -249,6 +249,8 @@ $Project "GameUI"
 		$File	"ModOptionsSubKnives.h"
 		$File	"ModOptionsSubGloves.cpp"
 		$File	"ModOptionsSubGloves.h"
+		$File	"ModOptionsSubCrosshair.cpp"
+		$File	"ModOptionsSubCrosshair.h"
 	}
 	
 	$Folder	"Link Libraries"

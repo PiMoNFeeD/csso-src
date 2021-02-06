@@ -184,7 +184,6 @@ const char *TLeetPlayerModelStrings[] =
 	"models/player/custom_player/legacy/tm_leet_variantE.mdl",
 };
 const char *TSeparatistPlayerModelStrings[] =
-{
 	"models/player/custom_player/legacy/tm_separatist.mdl",
 	"models/player/custom_player/legacy/tm_separatist_varianta.mdl",
 	"models/player/custom_player/legacy/tm_separatist_variantb.mdl",

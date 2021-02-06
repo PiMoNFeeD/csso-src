@@ -39,6 +39,9 @@ void PlantBombState::OnEnter( CCSBot *me )
  */
 void PlantBombState::OnUpdate( CCSBot *me )
 {
+	// can't be stuck while planting
+	me->ResetStuckMonitor();
+
 	CBaseCombatWeapon *gun = me->GetActiveWeapon();
 	bool holdingC4 = false;
 	if (gun)

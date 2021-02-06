@@ -386,6 +386,8 @@ inline byte PVSCheck( const byte *pvs, int iCluster )
 // outputs 1 in fractionVisible if no occlusion, 0 if full occlusion, and in-between values
 void TestLine( FourVectors const& start, FourVectors const& stop, fltx4 *pFractionVisible, int static_prop_index_to_ignore=-1);
 
+void TestLine_IgnoreSky( FourVectors const& start, FourVectors const& stop, fltx4 *pFractionVisible, int static_prop_index_to_ignore=-1);
+
 // returns 1 if the ray sees the sky, 0 if it doesn't, and in-between values for partial coverage
 void TestLine_DoesHitSky( FourVectors const& start, FourVectors const& stop,
                           fltx4 *pFractionVisible, bool canRecurse = true, int static_prop_to_skip=-1, bool bDoDebug = false );
@@ -518,6 +520,8 @@ public:
 
 	// utility
 	virtual	void GetDispSurfNormal( int ndxFace, Vector &pt, Vector &ptNormal, bool bInside ) = 0;
+	virtual void GetDispSurfPointAndNormalFromUV( int ndxFace, Vector &pt, Vector &ptNormal,
+												  Vector2D &uv, bool bInside ) = 0;
 	virtual void GetDispSurf( int ndxFace, CVRADDispColl **ppDispTree ) = 0;
 
 	// bsp tree functions

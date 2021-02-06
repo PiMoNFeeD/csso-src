@@ -1496,7 +1496,7 @@ void CBasePlayer::PlayerUse ( void )
 			// if the player has a weapon in the slot that occupies the weapon that they'd like to pick up
 			// AND they are able to drop it, pick up the new weapon
 			// OR if they don't have a weapon in that slot, go ahead and pick up the new weapon
-			if ( (pPlayerWeapon && pPlayer->CSWeaponDrop( pPlayerWeapon, true )) || !pPlayerWeapon )
+			if ( (pPlayerWeapon && pPlayer->HandleDropWeapon( pPlayerWeapon, true )) || !pPlayerWeapon )
 			{
 				pWeapon->Touch( this );
 

@@ -29,7 +29,7 @@ void CCSBot::OnWeaponFire( IGameEvent *event )
 
 	// for knife fighting - if our victim is attacking or reloading, rush him
 	/// @todo Propagate events into active state
-	if (GetEnemy() == player && IsUsingKnife())
+	if (GetBotEnemy() == player && IsUsingKnife())
 	{
 		ForceRun( 5.0f );
 	}
@@ -122,7 +122,7 @@ void CCSBot::OnWeaponFireOnEmpty( IGameEvent *event )
 
 	// for knife fighting - if our victim is attacking or reloading, rush him
 	/// @todo Propagate events into active state
-	if (GetEnemy() == player && IsUsingKnife())
+	if (GetBotEnemy() == player && IsUsingKnife())
 	{
 		ForceRun( 5.0f );
 	}
@@ -144,7 +144,7 @@ void CCSBot::OnWeaponReload( IGameEvent *event )
 
 	// for knife fighting - if our victim is attacking or reloading, rush him
 	/// @todo Propagate events into active state
-	if (GetEnemy() == player && IsUsingKnife())
+	if (GetBotEnemy() == player && IsUsingKnife())
 	{
 		ForceRun( 5.0f );
 	}

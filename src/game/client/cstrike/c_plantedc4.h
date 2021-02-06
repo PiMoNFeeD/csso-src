@@ -74,7 +74,6 @@ public:
 
 	float	m_flNextRadarFlashTime;	// next time to change flash state
 	bool	m_bRadarFlash;			// is the flash on or off
-	CNewParticleEffect *m_pC4Explosion; // client side explosion particle effect for the bomb
 
 	virtual void UpdateOnRemove( void ) OVERRIDE;
 

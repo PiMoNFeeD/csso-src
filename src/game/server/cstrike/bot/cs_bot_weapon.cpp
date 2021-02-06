@@ -54,7 +54,7 @@ void CCSBot::FireWeaponAtEnemy( void )
 			IsEnemyVisible())
 		{
 			// we have a clear shot - pull trigger if we are aiming at enemy
-			Vector toAimSpot = m_aimSpot - EyePosition();
+			Vector toAimSpot = m_targetSpot - EyePosition();
 			float rangeToEnemy = toAimSpot.NormalizeInPlace();
 
 			if ( IsUsingSniperRifle() )
@@ -179,63 +179,143 @@ void CCSBot::FireWeaponAtEnemy( void )
 
 //--------------------------------------------------------------------------------------------------------------
 /**
- * Set the current aim offset using given accuracy (1.0 = perfect aim, 0.0f = terrible aim)
+ * Set the current aim offset
  */
-void CCSBot::SetAimOffset( float accuracy )
+void CCSBot::PickNewAimSpot()
 {
-	// if our accuracy is less than perfect, it will improve as we "focus in" while not rotating our view
-	if (accuracy < 1.0f)
+	// aim at enemy, if he's still alive
+	if (m_enemy != NULL && m_enemy->IsAlive())
 	{
-		// if we moved our view, reset our "focus" mechanism
-		if (IsViewMoving( 100.0f ))
-			m_aimSpreadTimestamp = gpGlobals->curtime;
+		Vector enemyOrigin = GetCentroid( m_enemy );
 
-		// focusTime is the time it takes for a bot to "focus in" for very good aim, from 2 to 5 seconds
-		const float focusTime = MAX( 5.0f * (1.0f - accuracy), 2.0f );
-		float focusInterval = gpGlobals->curtime - m_aimSpreadTimestamp;
+		if ( IsEnemyVisible() )
+		{
+			//
+			// Enemy is visible - determine which part of him to shoot at
+			//
+			const float sharpshooter = 0.8f;
+			VisiblePartType aimAtPart;
 
-		float focusAccuracy = focusInterval / focusTime;
+			if (IsUsingMachinegun())
+			{
+				// spray the big machinegun at the enemy's gut
+				aimAtPart = GUT;
+			}
+			else if (IsUsing( WEAPON_AWP ) || IsUsingShotgun())
+			{
+				// these weapons are best aimed at the chest
+				aimAtPart = GUT;
+			}
+			else if (GetProfile()->GetSkill() > 0.5f && IsActiveWeaponRecoilHigh() )
+			{
+				// sprayin' and prayin' - aim at the gut since we're not going to be accurate
+				aimAtPart = GUT;
+			}
+			else if (GetProfile()->GetSkill() < sharpshooter)
+			{
+				// low skill bots don't go for headshots
+				aimAtPart = GUT;
+			}
+			else
+			{
+				// high skill - aim for the head
+				aimAtPart = HEAD;
+			}
 
-		// limit how much "focus" will help
-		const float maxFocusAccuracy = 0.75f;
-		if (focusAccuracy > maxFocusAccuracy)
-			focusAccuracy = maxFocusAccuracy;
+			if (IsEnemyPartVisible( aimAtPart ))
+			{
+				m_targetSpot = GetPartPosition( GetBotEnemy(), aimAtPart );
+			}
+			else
+			{
+				// desired part is blocked - aim at whatever part is visible 
+				if (IsEnemyPartVisible( GUT ))
+				{
+					m_targetSpot = GetPartPosition( GetBotEnemy(), GUT );
+				}
+				else if (IsEnemyPartVisible( HEAD ))
+				{
+					m_targetSpot = GetPartPosition( GetBotEnemy(), HEAD );
+				}
+				else if (IsEnemyPartVisible( LEFT_SIDE ))
+				{
+					m_targetSpot = GetPartPosition( GetBotEnemy(), LEFT_SIDE );
+				}
+				else if (IsEnemyPartVisible( RIGHT_SIDE ))
+				{
+					m_targetSpot = GetPartPosition( GetBotEnemy(), RIGHT_SIDE );
+				}
+				else // FEET
+				{
+					m_targetSpot = GetPartPosition( GetBotEnemy(), FEET );
+				}
+			}
 
-		accuracy = MAX( accuracy, focusAccuracy );
+			// temp test
+			m_targetSpot = GetPartPosition( GetBotEnemy(), GUT );
+
+			m_targetSpotVelocity = m_enemy->GetAbsVelocity();
+			m_targetSpotTime = gpGlobals->curtime;
+		}
+		else
+		{
+			// aim where we last saw enemy - but bend the ray so we don't point directly into walls
+			// if we put this back, make sure you only bend the ray ONCE and keep the bent spot - don't continually recompute
+			//BendLineOfSight( m_eyePosition, m_lastEnemyPosition, &m_aimSpot );
+			m_targetSpot = m_lastEnemyPosition;
+ 			m_targetSpotVelocity.Zero();
+		}
+
+		// decay old aim focus angle
+		m_aimFocus *= expf(logf(GetProfile()->GetAimFocusDecay()) * m_aimFocusInterval);
+
+		// calculate current aim focus maxima
+		Vector toTarget = m_targetSpot - EyePositionConst();
+		QAngle aimGoal;
+		VectorAngles( toTarget, aimGoal );
+		QAngle viewAngles = EyeAngles();
+		float deltaYaw = AngleDistance(viewAngles.y, aimGoal.y);
+		float deltaPitch = AngleDistance(viewAngles.x, aimGoal.x);
+		float fAngleOffset = sqrtf(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
+		float fNewMaxFocus = MIN(60.0f, fAngleOffset) * GetProfile()->GetAimFocusOffsetScale();
+		m_aimFocus = MAX(m_aimFocus, fNewMaxFocus);
+
+		float fTheta = RandomFloat(0.0f, 2.0f * M_PI);
+		float fRadius = RandomFloat(0.0f, m_aimFocus);
+
+		m_aimError[YAW] = fRadius * cosf(fTheta);
+		m_aimError[PITCH] = fRadius * sinf(fTheta);
 	}
 
-	//PrintIfWatched( "Accuracy = %4.3f\n", accuracy );
-
-	// aim error increases with distance, such that actual crosshair error stays about the same
-	float range = (m_lastEnemyPosition - EyePosition()).Length();
-	float maxOffset = (GetFOV()/GetDefaultFOV()) * 0.05f * range;		// 0.1
-	float error = maxOffset * (1.0f - accuracy);
-
-	m_aimOffsetGoal.x = RandomFloat( -error, error );
-	m_aimOffsetGoal.y = RandomFloat( -error, error );
-	m_aimOffsetGoal.z = RandomFloat( -error, error );
-
 	// define time when aim offset will automatically be updated
-	m_aimOffsetTimestamp = gpGlobals->curtime + RandomFloat( 0.25f, 1.0f ); // 0.25, 1.5f
+	m_aimFocusInterval = GetProfile()->GetAimFocusInterval();
+	m_aimFocusInterval *= RandomFloat(0.8f, 1.2f);	// add some randomness
+	m_aimFocusNextUpdate = gpGlobals->curtime + m_aimFocusInterval;
 }
 
 //--------------------------------------------------------------------------------------------------------------
 /**
  * Wiggle aim error based on GetProfile()->GetSkill()
  */
-void CCSBot::UpdateAimOffset( void )
+void CCSBot::UpdateAimPrediction( void )
 {
-	if (gpGlobals->curtime >= m_aimOffsetTimestamp)
-	{
-		SetAimOffset( GetProfile()->GetSkill() );
-	}
+	float fTimeSinceAimSpot = gpGlobals->curtime - m_targetSpotTime;
+	m_targetSpotPredicted = m_targetSpot + fTimeSinceAimSpot * m_targetSpotVelocity;
 
-	// move current offset towards goal offset
-	Vector d = m_aimOffsetGoal - m_aimOffset;
-	const float stiffness = 0.1f;
-	m_aimOffset.x += stiffness * d.x;
-	m_aimOffset.y += stiffness * d.y;
-	m_aimOffset.z += stiffness * d.z;
+	Vector toTarget = m_targetSpotPredicted - EyePositionConst();
+
+	VectorAngles( toTarget, m_aimGoal );
+	if ( m_aimGoal[PITCH] > 180.0f )
+		m_aimGoal[PITCH] -= 360.f;
+
+	m_aimGoal += m_aimError;
+
+	// adjust aim angle for recoil
+	float fSkill = GetProfile()->GetSkill();	// 0.0 .. 1.0
+	float fPunchAngleCorrectionFactor = 1.0f + (1.f - fSkill) * .8f * SlowNoise( 6.f );
+	const QAngle &punchAngles = GetPunchAngle();
+	m_aimGoal -= punchAngles * fPunchAngleCorrectionFactor;
+	m_aimGoal[PITCH] = clamp(m_aimGoal[PITCH], -89.0f, +89.0f);
 }
 
 

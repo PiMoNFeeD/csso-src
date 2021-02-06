@@ -67,110 +67,14 @@ void CCSBot::Upkeep( void )
 	// aiming must be smooth - update often
 	if (IsAimingAtEnemy())
 	{
-		UpdateAimOffset();
-
-		// aim at enemy, if he's still alive
-		if (m_enemy != NULL && m_enemy->IsAlive())
+		if (gpGlobals->curtime >= m_aimFocusNextUpdate)
 		{
-			Vector enemyOrigin = GetCentroid( m_enemy );
-
-			if (m_isEnemyVisible)
-			{
-				//
-				// Enemy is visible - determine which part of him to shoot at
-				//
-				const float sharpshooter = 0.8f;
-				VisiblePartType aimAtPart;
-
-				if (IsUsingMachinegun())
-				{
-					// spray the big machinegun at the enemy's gut
-					aimAtPart = GUT;
-				}
-				else if (IsUsing( WEAPON_AWP ) || IsUsingShotgun())
-				{
-					// these weapons are best aimed at the chest
-					aimAtPart = GUT;
-				}
-				else if (GetProfile()->GetSkill() > 0.5f && IsActiveWeaponRecoilHigh() )
-				{
-					// sprayin' and prayin' - aim at the gut since we're not going to be accurate
-					aimAtPart = GUT;
-				}
-				else if (GetProfile()->GetSkill() < sharpshooter)
-				{
-					// low skill bots don't go for headshots
-					aimAtPart = GUT;
-				}
-				else
-				{
-					// high skill - aim for the head
-					aimAtPart = HEAD;
-				}
-
-				if (IsEnemyPartVisible( aimAtPart ))
-				{
-					m_aimSpot = GetPartPosition( GetBotEnemy(), aimAtPart );
-				}
-				else
-				{
-					// desired part is blocked - aim at whatever part is visible 
-					if (IsEnemyPartVisible( GUT ))
-					{
-						m_aimSpot = GetPartPosition( GetBotEnemy(), GUT );
-					}
-					else if (IsEnemyPartVisible( HEAD ))
-					{
-						m_aimSpot = GetPartPosition( GetBotEnemy(), HEAD );
-					}
-					else if (IsEnemyPartVisible( LEFT_SIDE ))
-					{
-						m_aimSpot = GetPartPosition( GetBotEnemy(), LEFT_SIDE );
-					}
-					else if (IsEnemyPartVisible( RIGHT_SIDE ))
-					{
-						m_aimSpot = GetPartPosition( GetBotEnemy(), RIGHT_SIDE );
-					}
-					else // FEET
-					{
-						m_aimSpot = GetPartPosition( GetBotEnemy(), FEET );
-					}
-				}
-
-				// high skill bots lead the target a little to compensate for update tick latency
-				/*
-				if (false && GetProfile()->GetSkill() > 0.5f)
-				{
-					const float k = 1.0f;
-					m_aimSpot += k * g_flBotCommandInterval * (m_enemy->GetAbsVelocity() - GetAbsVelocity());
-				}
-				*/
-
-			}
-			else
-			{
-				// aim where we last saw enemy - but bend the ray so we dont point directly into walls
-				// if we put this back, make sure you only bend the ray ONCE and keep the bent spot - dont continually recompute
-				//BendLineOfSight( m_eyePosition, m_lastEnemyPosition, &m_aimSpot );
-				m_aimSpot = m_lastEnemyPosition;
-			}
-
-			// add in aim error
-			m_aimSpot.x += m_aimOffset.x;
-			m_aimSpot.y += m_aimOffset.y;
-			m_aimSpot.z += m_aimOffset.z;
-
-			Vector to = m_aimSpot - EyePositionConst();
-
-			QAngle idealAngle;
-			VectorAngles( to, idealAngle );
-
-			// adjust aim angle for recoil, based on bot skill
-			const QAngle &punchAngles = GetPunchAngle();
-			idealAngle -= punchAngles * GetProfile()->GetSkill();
-
-			SetLookAngles( idealAngle.y, idealAngle.x );
+			PickNewAimSpot();
 		}
+
+		UpdateAimPrediction();
+
+		SetLookAngles( m_aimGoal[YAW], m_aimGoal[PITCH] );
 	}
 	else
 	{
@@ -251,6 +155,14 @@ void CCSBot::Update( void )
 	if (GetTeamNumber() == 0)
 	{
 		HandleCommand_JoinTeam( m_desiredTeam );
+
+		// if we have map factions enabled, use them instead of random faction
+		if ( CSGameRules()->UseMapFactionsForThisPlayer( this ) && CSGameRules()->GetMapFactionsForThisPlayer( this ) > -1 )
+		{
+			HandleCommand_JoinClass( CSGameRules()->GetMapFactionsForThisPlayer( this ) );
+			return;
+		}
+
 		int desiredClass = GetProfile()->GetSkin();
 		if ( m_desiredTeam == TEAM_CT )
 		{
@@ -1014,10 +926,25 @@ void CCSBot::DebugDisplay( void ) const
 	// show aim spot
 	if (IsAimingAtEnemy())
 	{
-		NDebugOverlay::Cross3D( m_aimSpot, 5.0f, 255, 0, 0, true, duration );
+		// since this is executed on the server, we don't have a way of rendering something view relative, 
+		// so project out the aim vector to a distance corresponding to the target distance
+		Vector toCurrent = m_targetSpot - EyePositionConst();
+		float fDistance = toCurrent.Length();
+		Vector aimVector;
+		AngleVectors( m_aimGoal, &aimVector );
+		Vector aimTarget = EyePositionConst() +  aimVector * fDistance;
+
+		NDebugOverlay::Cross3D( aimTarget, 8.0f, 255, 255, 0, true, duration );
+
+/*
+		vgui::surface()->DrawSetColor( r, g, b, alpha );
+		float fHalfFov = DEG2RAD( pPlayer->GetFOV() ) * 0.5f;
+		float fSpreadDistance = ( GetInaccuracy() + GetSpread() ) * 320.0f / tanf( fHalfFov );
+		int iSpreadDistance = RoundFloatToInt( YRES( fSpreadDistance ));
+		vgui::surface()->DrawFilledRect( x0, y0, x1, y1 );
+*/
+
 	}
-
-
 
 	if (IsHiding())
 	{

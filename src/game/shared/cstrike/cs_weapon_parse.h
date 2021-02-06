@@ -193,12 +193,6 @@ public:
 	float	m_flCycleTime;
 	float	m_flCycleTimeAlt;
 
-	// Variables that control how fast the weapon's accuracy changes as it is fired.
-	bool	m_bAccuracyQuadratic;
-	float	m_flAccuracyDivisor;
-	float	m_flAccuracyOffset;
-	float	m_flMaxInaccuracy;
-
 	// variables for new accuracy model
 	float m_fSpread[2];
 	float m_fInaccuracyCrouch[2];
@@ -216,6 +210,9 @@ public:
 	// Delay until the next idle animation after shooting.
 	float	m_flTimeToIdleAfterFire;
 	float	m_flIdleInterval;
+
+	// eject brass variables
+	char	m_szEjectBrassEffect[MAX_WEAPON_STRING];
 
 	// tracer variables
 	int		m_iTracerFrequency[2];

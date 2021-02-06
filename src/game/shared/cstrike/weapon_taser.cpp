@@ -51,6 +51,7 @@ BEGIN_PREDICTION_DATA( CWeaponTaser )
 END_PREDICTION_DATA()
 
 LINK_ENTITY_TO_CLASS( weapon_taser, CWeaponTaser );
+PRECACHE_WEAPON_REGISTER( weapon_taser );
 
 CWeaponTaser::CWeaponTaser() :
 	m_fFireTime(0.0f)

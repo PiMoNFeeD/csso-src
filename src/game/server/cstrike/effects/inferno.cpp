@@ -20,6 +20,7 @@
 #include "smokegrenade_projectile.h"
 #include "improv_locomotor.h"
 #include "cs_player.h"
+#include "cs_gamerules.h"
 
 // NOTE: This has to be the last file included!
 #include "tier0/memdbgon.h"
@@ -821,7 +822,6 @@ void CInferno::MarkCoveredAreaAsDamaging()
 	}
 }
 
-extern ConVar friendlyfire;
 bool CInferno::CanHarm( CBaseEntity *pEnt ) const
 {
 	CCSPlayer* pPlayer = dynamic_cast<CCSPlayer*>(pEnt);
@@ -833,7 +833,7 @@ bool CInferno::CanHarm( CBaseEntity *pEnt ) const
 		return true;
 
 	// dont damage teammates
-	if ( !friendlyfire.GetBool() && pPlayer->GetTeamNumber() == GetOwnerEntity()->GetTeamNumber() )
+	if ( CSGameRules()->IsFriendlyFireOn() && pPlayer->GetTeamNumber() == GetOwnerEntity()->GetTeamNumber() )
 		return false;
 
 	return true;

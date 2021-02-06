@@ -135,31 +135,9 @@ bool CWeaponCSBaseGun::CSBaseGunFire( float flCycleTime, CSWeaponMode weaponMode
 	if ( !pPlayer )
 		return false;
 
-	const CCSWeaponInfo &pCSInfo = GetCSWpnData();
-
 	m_bDelayFire = true;
 
-	if ( m_iClip1 > 0 )
-	{
-		pPlayer->m_iShotsFired++;
-	
-		// These modifications feed back into flSpread eventually.
-		if ( pCSInfo.m_flAccuracyDivisor != -1 )
-		{
-			int iShotsFired = pPlayer->m_iShotsFired;
-
-			if ( pCSInfo.m_bAccuracyQuadratic )
-				iShotsFired = iShotsFired * iShotsFired;
-			else
-				iShotsFired = iShotsFired * iShotsFired * iShotsFired;
-
-			m_flAccuracy = ( iShotsFired / pCSInfo.m_flAccuracyDivisor ) + pCSInfo.m_flAccuracyOffset;
-			
-			if ( m_flAccuracy > pCSInfo.m_flMaxInaccuracy )
-				m_flAccuracy = pCSInfo.m_flMaxInaccuracy;
-		}
-	}
-	else
+	if ( m_iClip1 == 0 )
 	{
 		m_flAccuracy = 0;
 
@@ -209,6 +187,7 @@ bool CWeaponCSBaseGun::CSBaseGunFire( float flCycleTime, CSWeaponMode weaponMode
 			SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 	}
 
+	++pPlayer->m_iShotsFired;
 	m_iClip1--;
 
 	// player "shoot" animation

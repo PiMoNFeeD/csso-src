@@ -212,7 +212,7 @@ struct BuyInfo
 	const char *buyAlias;			///< the buy alias for this equipment
 };
 
-#define PRIMARY_WEAPON_BUY_COUNT 13
+#define PRIMARY_WEAPON_BUY_COUNT 16
 #define SECONDARY_WEAPON_BUY_COUNT 3
 
 /**
@@ -221,19 +221,22 @@ struct BuyInfo
 
 static BuyInfo primaryWeaponBuyInfoCT[ PRIMARY_WEAPON_BUY_COUNT ] =
 {
-	{ SHOTGUN,			false, "nova" },		// WEAPON_NOVA
-	{ SHOTGUN,			false, "xm1014" },		// WEAPON_XM1014
-	{ SUB_MACHINE_GUN,	false, "mp9" },			// WEAPON_MP9
-	{ SUB_MACHINE_GUN,	false, "mp5sd" },		// WEAPON_MP5SD
-	{ SUB_MACHINE_GUN,	false, "ump45" },		// WEAPON_UMP45
-	{ SUB_MACHINE_GUN,	false, "p90" },			// WEAPON_P90
-	{ RIFLE,			true,  "famas" },		// WEAPON_FAMAS
-	{ SNIPER_RIFLE,		false, "ssg08" },		// WEAPON_SSG08
-	{ RIFLE,			true,  "m4a4" },		// WEAPON_M4A4
-	{ RIFLE,			false, "aug" },			// WEAPON_AUG
-	{ SNIPER_RIFLE,		true,  "scar20" },		// WEAPON_SCAR20
-	{ SNIPER_RIFLE,		true,  "awp" },			// WEAPON_AWP
-	{ MACHINE_GUN,		false, "m249" }			// WEAPON_M249
+	{ SHOTGUN,			false,	"nova" },
+	{ SHOTGUN,			false,	"xm1014" },
+	{ SHOTGUN,			false,	"mag7" },
+	{ SUB_MACHINE_GUN,	false,	"mp9" },
+	{ SUB_MACHINE_GUN,	false,	"bizon" },
+	{ SUB_MACHINE_GUN,	false,	"mp7" },
+	{ SUB_MACHINE_GUN,	false,	"ump45" },
+	{ SUB_MACHINE_GUN,	false,	"p90" },
+	{ RIFLE,			true,	"famas" },
+	{ SNIPER_RIFLE,		false,	"ssg08" },
+	{ RIFLE,			true,	"m4a4" },
+	{ RIFLE,			true,	"aug" },
+	{ SNIPER_RIFLE,		true,	"scar20" },
+	{ SNIPER_RIFLE,		true,	"awp" },
+	{ MACHINE_GUN,		false,	"m249" },
+	{ MACHINE_GUN,		false,	"negev" }
 };
 
 static BuyInfo secondaryWeaponBuyInfoCT[ SECONDARY_WEAPON_BUY_COUNT ] =
@@ -242,25 +245,28 @@ static BuyInfo secondaryWeaponBuyInfoCT[ SECONDARY_WEAPON_BUY_COUNT ] =
 //	{ PISTOL,	false,	"usp" },
 	{ PISTOL, true,		"p250" },
 	{ PISTOL, true,		"deagle" },
-	{ PISTOL, true,		"fn57" }
+	{ PISTOL, true,		"fiveseven" }
 };
 
 
 static BuyInfo primaryWeaponBuyInfoT[ PRIMARY_WEAPON_BUY_COUNT ] =
 {
-	{ SHOTGUN,			false, "nova" },		// WEAPON_NOVA
-	{ SHOTGUN,			false, "xm1014" },		// WEAPON_XM1014
-	{ SUB_MACHINE_GUN,	false, "mac10" },		// WEAPON_MAC10
-	{ SUB_MACHINE_GUN,	false, "mp5sd" },		// WEAPON_MP5SD
-	{ SUB_MACHINE_GUN,	false, "ump45" },		// WEAPON_UMP45
-	{ SUB_MACHINE_GUN,	false, "p90" },			// WEAPON_P90
-	{ RIFLE,			true,  "galilar" },		// WEAPON_GALILAR
-	{ RIFLE,			true,  "ak47" },		// WEAPON_AK47
-	{ SNIPER_RIFLE,		false, "ssg08" },		// WEAPON_SSG08
-	{ RIFLE,			true,  "sg556" },		// WEAPON_SG556
-	{ SNIPER_RIFLE,		true,  "awp" },			// WEAPON_AWP
-	{ SNIPER_RIFLE,		true,  "g3sg1" },		// WEAPON_G3SG1
-	{ MACHINE_GUN,		false, "m249" }			// WEAPON_M249
+	{ SHOTGUN,			false,	"nova" },
+	{ SHOTGUN,			false,	"xm1014" },
+	{ SHOTGUN,			false,	"sawedoff" },
+	{ SUB_MACHINE_GUN,	false,	"mac10" },
+	{ SUB_MACHINE_GUN,	false,	"ump45" },
+	{ SUB_MACHINE_GUN,	false,	"p90" },
+	{ RIFLE,			true,	"galilar" },
+	{ RIFLE,			true,	"ak47" },
+	{ SNIPER_RIFLE,		false,	"ssg08" },
+	{ RIFLE,			true,	"sg556" },
+	{ SNIPER_RIFLE,		true,	"awp" },
+	{ SNIPER_RIFLE,		true,	"g3sg1" },
+	{ MACHINE_GUN,		false,	"m249" },
+	{ MACHINE_GUN,		false,	"negev" },
+	{ NUM_WEAPON_TYPES,	false,	"" },
+	{ NUM_WEAPON_TYPES,	false,	"" }
 };
 
 static BuyInfo secondaryWeaponBuyInfoT[ SECONDARY_WEAPON_BUY_COUNT ] =
@@ -342,8 +348,7 @@ void BuyState::OnUpdate( CCSBot *me )
 	const char *cheatWeaponString = bot_loadout.GetString();
 	if ( cheatWeaponString && *cheatWeaponString )
 	{
-		CUtlVector<char*, CUtlMemory<char*> > loadout;
-		Q_SplitString( cheatWeaponString, " ", loadout );
+		CSplitString loadout( cheatWeaponString, " " );
 		for ( int i=0; i<loadout.Count(); ++i )
 		{
 			const char *item = loadout[i];
@@ -493,11 +498,6 @@ void BuyState::OnUpdate( CCSBot *me )
 			}
 
 			++m_prefRetries;
-
-			// bail out so we dont waste money on other equipment
-			// unless everything we prefer has been disallowed, then buy at random
-			if (isPreferredAllDisallowed == false)
-				return;
 		}
 
 		// if we have no preferred primary weapon (or everything we want is disallowed), buy at random

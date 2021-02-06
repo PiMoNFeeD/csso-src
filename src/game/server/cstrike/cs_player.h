@@ -874,6 +874,8 @@ public:
 	bool CSWeaponDrop( CBaseCombatWeapon *pWeapon, bool bDropShield = true, bool bThrow = false );
 	bool CSWeaponDrop( CBaseCombatWeapon *pWeapon, Vector targetPos, bool bDropShield = true );
 
+	bool HandleDropWeapon( CBaseCombatWeapon *pWeapon = NULL, bool bSwapping = false );
+
 protected:
 	void TransferInventory( CCSPlayer* pTargetPlayer );
 	bool DropRifle( bool fromDeath = false );

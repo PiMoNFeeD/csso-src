@@ -116,6 +116,7 @@ REGISTER_GAMERULES_CLASS( CCSGameRules );
 BEGIN_NETWORK_TABLE_NOBASE( CCSGameRules, DT_CSGameRules )
 	#ifdef CLIENT_DLL
 		RecvPropBool( RECVINFO( m_bFreezePeriod ) ),
+		RecvPropBool( RECVINFO( m_bMatchWaitingForResume ) ),
         RecvPropBool( RECVINFO( m_bWarmupPeriod ) ),
         RecvPropFloat( RECVINFO( m_fWarmupPeriodEnd ) ), // DUMMY VAR FOR DEMOS		
         RecvPropFloat( RECVINFO( m_fWarmupPeriodStart ) ),	
@@ -133,6 +134,7 @@ BEGIN_NETWORK_TABLE_NOBASE( CCSGameRules, DT_CSGameRules )
 		RecvPropInt( RECVINFO( m_iRoundWinStatus ) )
 	#else
 		SendPropBool( SENDINFO( m_bFreezePeriod ) ),
+		SendPropBool( SENDINFO( m_bMatchWaitingForResume ) ),
         SendPropBool( SENDINFO( m_bWarmupPeriod ) ),
         SendPropFloat( SENDINFO( m_fWarmupPeriodEnd ) ), // DUMMY VAR FOR DEMOS	
         SendPropFloat( SENDINFO( m_fWarmupPeriodStart ) ),	
@@ -503,7 +505,7 @@ ConVar loadout_slot_gloves_t(
 	"loadout_slot_gloves_t",
 	"0",
 	FCVAR_ARCHIVE | FCVAR_USERINFO,
-	"Which gloveS to use for Ts.",
+	"Which gloves to use for Ts.",
 	true, 0, true, MAX_GLOVES );
 
 #ifdef CLIENT_DLL
@@ -1008,6 +1010,7 @@ ConVar snd_music_selection(
 		m_fRoundStartTime = 0;
 		m_bAllowWeaponSwitch = true;
 		m_bFreezePeriod = true;
+		m_bMatchWaitingForResume = false;
 		m_iNumTerrorist = m_iNumCT = 0;	// number of players per team
 		m_flRestartRoundTime = 0.1f; // restart first round as soon as possible
 		m_iNumSpawnableTerrorist = m_iNumSpawnableCT = 0;
@@ -1137,8 +1140,8 @@ ConVar snd_music_selection(
 		m_iCurrentGamemode = 0;
 		m_iOldGamemode = 0;
 
-		m_iMapFactionCT = 0;
-		m_iMapFactionT = 0;
+		m_iMapFactionCT = -1;
+		m_iMapFactionT = -1;
 		LoadMapProperties();
 
 		m_bWarmupPeriod = mp_do_warmup_period.GetBool();
@@ -3741,7 +3744,7 @@ ConVar snd_music_selection(
 			}
 		}
 
-		int which = cv_bot_defer_to_human.GetBool();
+		int which = cv_bot_defer_to_human_items.GetBool();
 		if ( numAliveTs[HUMAN_TERRORISTS] == 0 )
 		{
 			which = ALL_TERRORISTS;
@@ -4116,6 +4119,11 @@ ConVar snd_music_selection(
 
 		if ( IsFinite( startTime ) && gpGlobals->curtime < startTime )
 		{
+			if ( IsMatchWaitingForResume() )
+			{
+				m_fRoundStartTime = gpGlobals->curtime + m_iFreezeTime;
+			}
+
 			return; // not time yet to start round
 		}
 
@@ -4651,6 +4659,40 @@ ConVar snd_music_selection(
 			mp_restartgame.SetValue( 0 );
 		}
 	}
+
+	//////// PAUSE
+	void cc_PauseMatch( const CCommand& args )
+	{
+		if ( UTIL_IsCommandIssuedByServerAdmin() )
+		{
+			CCSGameRules *pRules = dynamic_cast<CCSGameRules*>( GameRules() );
+
+			if ( pRules && !pRules->IsMatchWaitingForResume() )
+			{
+				UTIL_ClientPrintAll( HUD_PRINTCENTER, "#Cstrike_TitlesTXT_Match_Will_Pause" );
+				pRules->SetMatchWaitingForResume( true );
+			}
+		}
+	}
+
+	static ConCommand mp_pause_match( "mp_pause_match", cc_PauseMatch, "Pause the match in the next freeze time" );	
+
+	//////// RESUME
+	void cc_ResumeMatch( const CCommand& args )
+	{
+		if ( UTIL_IsCommandIssuedByServerAdmin() )
+		{
+			CCSGameRules *pRules = dynamic_cast<CCSGameRules*>( GameRules() );
+
+			if ( pRules && pRules->IsMatchWaitingForResume() )
+			{
+				UTIL_ClientPrintAll( HUD_PRINTCENTER, "#Cstrike_TitlesTXT_Match_Will_Resume" );
+				pRules->SetMatchWaitingForResume( false );
+			}
+		}
+	}
+
+	static ConCommand mp_unpause_match( "mp_unpause_match", cc_ResumeMatch, "Resume the match" );
 
 
 	class SetHumanTeamFunctor
@@ -6054,6 +6096,21 @@ bool CCSGameRules::UseMapFactionsForThisPlayer( CBasePlayer* pPlayer )
 
 	return false;
 }
+int CCSGameRules::GetMapFactionsForThisPlayer( CBasePlayer* pPlayer )
+{
+	if ( !UseMapFactionsForThisPlayer(pPlayer) )
+		return -1;
+
+	switch ( pPlayer->GetTeamNumber() )
+	{
+		case TEAM_CT:
+			return m_iMapFactionCT;
+		case TEAM_TERRORIST:
+			return m_iMapFactionT;
+	}
+
+	return -1;
+}
 #endif
 
 #ifndef CLIENT_DLL
@@ -6128,6 +6185,11 @@ bool CCSGameRules::IsBuyTimeElapsed()
 		return false;
 
 	return ( GetRoundElapsedTime() > GetBuyTimeLength() );
+}
+
+bool CCSGameRules::IsMatchWaitingForResume()
+{
+	return m_bMatchWaitingForResume;
 }
 
 #ifndef CLIENT_DLL

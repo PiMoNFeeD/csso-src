@@ -386,10 +386,19 @@ void CCSBot::DoorCheck( void )
 
 	if ( door )
 	{
-		if ( !IsLookingAtSpot( PRIORITY_HIGH ) )
+		if ( !IsLookingAtSpot( PRIORITY_UNINTERRUPTABLE ) )
 		{
 			if ( !IsOpeningDoor() )
 			{
+				CBasePropDoor *pPropDoor = dynamic_cast<CBasePropDoor*>( door );
+				if ( pPropDoor && pPropDoor->IsDoorLocked() )
+					return;
+				else if ( CBaseDoor *pFuncDoor = dynamic_cast< CBaseDoor * >( door ) )
+				{
+					if ( pFuncDoor->m_bLocked )
+						return;
+				}
+
 				OpenDoor( door );
 			}
 		}
@@ -477,7 +486,7 @@ void CCSBot::StuckCheck( void )
 			avgVel /= m_avgVelCount;
 
 			// cannot make this velocity too high, or bots will get "stuck" when going down ladders
-			float stuckVel = (IsUsingLadder()) ? 10.0f : 20.0f;
+			float stuckVel = (IsRunning()) ? 10.0f : 5.0f;
 
 			if (avgVel < stuckVel)
 			{
@@ -487,7 +496,7 @@ void CCSBot::StuckCheck( void )
 				m_stuckJumpTimer.Start( RandomFloat( 0.3f, 0.75f ) );		// 1.0
 
 				PrintIfWatched( "STUCK\n" );
-				if (IsLocalPlayerWatchingMe() && cv_bot_debug.GetInt() > 0.0f && UTIL_GetListenServerHost())
+				if (IsLocalPlayerWatchingMe() && cv_bot_debug.GetInt() > 0 && UTIL_GetListenServerHost())
 				{
 					CBasePlayer *localPlayer = UTIL_GetListenServerHost();
 					CSingleUserRecipientFilter filter( localPlayer );
@@ -584,7 +593,7 @@ void CCSBot::MoveTowardsPosition( const Vector &pos )
 	// NOTE: We need to do this frequently to catch edges at the right time
 	// @todo Look ahead *along path* instead of straight line 
 	//
-	if ((m_lastKnownArea == NULL || !(m_lastKnownArea->GetAttributes() & NAV_MESH_NO_JUMP)) &&
+	if ((m_lastKnownArea == NULL || !(m_lastKnownArea->GetAttributes() & NAV_MESH_NO_JUMP | NAV_MESH_STAIRS)) &&
 		!IsOnLadder())
 	{
 		float ground;

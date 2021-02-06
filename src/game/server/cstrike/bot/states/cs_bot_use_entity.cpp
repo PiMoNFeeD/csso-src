@@ -24,6 +24,14 @@ void UseEntityState::OnEnter( CCSBot *me )
 
 void UseEntityState::OnUpdate( CCSBot *me )
 {
+	// in the case when an entity we were supposed to +use is deleted we shouldn't try to
+	// dereference a NULL pointer and should just go to a higher level objective
+	if ( !m_entity.Get() )
+	{
+		me->Idle();
+		return;
+	}
+
 	// in the very rare situation where two or more bots "used" a hostage at the same time,
 	// one bot will fail and needs to time out of this state
 	const float useTimeout = 5.0f;

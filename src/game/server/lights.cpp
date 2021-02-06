@@ -231,6 +231,7 @@ void CLight::FadeThink(void)
 //
 LINK_ENTITY_TO_CLASS( light_spot, CLight );
 LINK_ENTITY_TO_CLASS( light_glspot, CLight );
+LINK_ENTITY_TO_CLASS( light_directional, CLight );
 
 
 class CEnvLight : public CLight

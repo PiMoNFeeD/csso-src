@@ -374,6 +374,10 @@ MDLViewer::MDLViewer ()
 	menuView->setChecked( IDC_VIEW_HIDDEN, g_viewerSettings.showHidden );
 	menuView->setChecked( IDC_VIEW_SORT_SEQUENCES, g_viewerSettings.sortSequences );
 
+	menuView->setChecked( IDC_VIEW_ACTIVITIES, g_viewerSettings.showActivities );
+	menuView->setChecked( IDC_VIEW_HIDDEN, g_viewerSettings.showHidden );
+	menuView->setChecked( IDC_VIEW_SORT_SEQUENCES, g_viewerSettings.sortSequences );
+
 	setBounds( g_viewerSettings.xpos, g_viewerSettings.ypos, g_viewerSettings.width, g_viewerSettings.height );
 	setVisible (true);
 	setTimer( 200 );

@@ -444,6 +444,7 @@ void S_FreeChannel(channel_t *ch)
 	Q_memset(ch, 0, sizeof(channel_t));
 }
 
+extern ConVar host_timescale;
 
 // Mix all channels into active paintbuffers until paintbuffer is full or 'endtime' is reached.
 // endtime: time in 44khz samples to mix
@@ -472,8 +473,14 @@ void MIX_MixChannelsToPaintbuffer( CChannelList &list, int endtime, int flags, i
 	if ( sampleCount <= 0 )
 		return;
 
-	// Apply a global pitch shift if we're playing back a time-scaled replay
-	float flGlobalPitchScale = 1.0f;
+	// Apply host_timescale as a global pitch shift
+	float flGlobalPitchScale = host_timescale.GetFloat();
+
+	extern IVEngineClient *engineClient;
+	if ( engineClient )
+	{
+		flGlobalPitchScale = engineClient->GetTimescale();
+	}
 
 #if defined( REPLAY_ENABLED )
 	extern IDemoPlayer *g_pReplayDemoPlayer;

@@ -1193,7 +1193,7 @@ void UpdateBuyMenuImageEntity(
 		g_BuyMenuImagePlayer = pPlayerModel;
 	}
 
-	if ( pPlayerModel->DoesModelSupportGloves() )
+	if ( pPlayerModel && pPlayerModel->DoesModelSupportGloves() )
 	{
 		if ( CSLoadout()->HasGlovesSet( pLocalPlayer, pLocalPlayer->GetTeamNumber() ) )
 			bCreateGloves = true;

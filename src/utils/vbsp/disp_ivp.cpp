@@ -82,19 +82,6 @@ MaterialSystemMaterial_t GetMatIDFromDisp( mapdispinfo_t *pMapDisp )
 	return matID;
 }
 
-// check this and disable virtual mesh if in use
-bool Disp_HasPower4Displacements()
-{
-	for ( int i = 0; i < g_CoreDispInfos.Count(); i++ )
-	{
-		if ( g_CoreDispInfos[i]->GetPower() > 3 )
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
 // adds all displacement faces as a series of convex objects
 // UNDONE: Only add the displacements for this model?
 void Disp_AddCollisionModels( CUtlVector<CPhysCollisionEntry *> &collisionList, dmodel_t *pModel, int contentsMask)
@@ -240,7 +227,7 @@ void CDispMeshEvent::GetVirtualMesh( void *userData, virtualmeshlist_t *pList )
 	pList->surfacePropsIndex = 0;	// doesn't matter here, reset at runtime
 	pList->pHull = NULL;
 	int indexMax = ARRAYSIZE(pList->indices);
-	int indexCount = min(m_indexCount, indexMax);
+	int indexCount = MIN(m_indexCount, indexMax);
 	Assert(m_indexCount < indexMax);
 	Q_memcpy( pList->indices, m_pIndices, sizeof(*m_pIndices) * indexCount );
 }
@@ -260,7 +247,7 @@ void CDispMeshEvent::GetTrianglesInSphere( void *userData, const Vector &center,
 	Assert(userData==((void *)this));
 	pList->triangleCount = m_indexCount/3;
 	int indexMax = ARRAYSIZE(pList->triangleIndices);
-	int indexCount = min(m_indexCount, indexMax);
+	int indexCount = MIN(m_indexCount, indexMax);
 	Assert(m_indexCount < MAX_VIRTUAL_TRIANGLES*3);
 	Q_memcpy( pList->triangleIndices, m_pIndices, sizeof(*m_pIndices) * indexCount );
 }

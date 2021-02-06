@@ -3691,7 +3691,6 @@ void C_BaseAnimating::DoAnimationEvents( CStudioHdr *pStudioHdr )
 #if !defined( CSTRIKE_DLL )
 	// We already handle muzzle flash events in CS.
 	// Also this code has a bug in that it always uses attachment 1 instead of by name.
-
 	// add in muzzleflash effect
 	if ( ShouldMuzzleFlash() )
 	{
@@ -3699,6 +3698,7 @@ void C_BaseAnimating::DoAnimationEvents( CStudioHdr *pStudioHdr )
 		
 		ProcessMuzzleFlashEvent();
 	}
+#endif
 
 #endif
 
@@ -6109,6 +6109,14 @@ bool C_BaseAnimating::DoesModelSupportGloves()
 	return false;
 }
 
+bool C_BaseAnimating::DoesModelSupportGloves()
+{
+#ifdef CSTRIKE_DLL
+	return (FindBodygroupByName( "gloves" ) > -1) ? true : false;
+#endif
+	
+	return false;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 

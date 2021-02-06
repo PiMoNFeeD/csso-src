@@ -444,7 +444,7 @@ void CEngineTool::SetGamePaused( bool paused )
 
 float CEngineTool::GetTimescale()
 {
-	return host_timescale.GetFloat();
+	return host_timescale.GetFloat() * sv.GetTimescale();
 }
 
 void CEngineTool::SetTimescale( float scale )
@@ -465,7 +465,7 @@ float CEngineTool::GetRealTime()
 
 float CEngineTool::GetRealFrameTime()
 {
-	return host_frametime;
+	return host_frametime_unscaled;
 }
 
 float CEngineTool::HostFrameTime()

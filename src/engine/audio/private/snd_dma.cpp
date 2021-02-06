@@ -277,7 +277,7 @@ float S_ComputeDelayForSoundtime( float soundtime, clocksync_index_t syncIndex )
 	int delaySamples = gameSamples - paintedSamples;
 	float delay = delaySamples / float(dmaSpeed);
 
-	if ( gameDeltaTime < 0 || fabs(delay) > 0.500f )
+	if ( gameDeltaTime < 0 || fabs(delay) > 0.200f )
 	{
 		// Note that the equations assume a correlation between game time and real time
 		// some kind of clock error.  This can happen with large host_timescale or when the 

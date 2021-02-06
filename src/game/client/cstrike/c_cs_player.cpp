@@ -668,7 +668,6 @@ void C_CSRagdoll::CreateCSRagdoll()
 	m_bInitialized = true;
 }
 
-
 void C_CSRagdoll::ComputeFxBlend( void )
 {
 	if ( m_flRagdollSinkStart == -1 )
@@ -1485,7 +1484,7 @@ void C_CSPlayer::CreateAddonModel( int i )
 		// fade out all attached models except C4
 		pEnt->SetFadeMinMax( 400, 500 );
 
-		pEnt->SetBodygroup( pEnt->FindBodygroupByName( "gift" ), UTIL_IsNewYear() ? 1 : 0 );
+		pEnt->SetBodygroup( pEnt->FindBodygroupByName( "gift" ), UTIL_IsNewYear() );
 	}
 
 	// Create the addon.
@@ -1512,8 +1511,6 @@ void C_CSPlayer::CreateAddonModel( int i )
 	}
 
 	pEnt->SetModelScale( iScale );
-	if ( addonType == ADDON_C4 )
-		pEnt->SetBodygroup( pEnt->FindBodygroupByName( "gift" ), UTIL_IsNewYear() ? 1 : 0 );
 	if ( IsLocalPlayer() )
 	{
 		pEnt->SetSolid( SOLID_NONE );
@@ -1724,7 +1721,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent *event )
 			UpdateAddonModels();
 
 			m_pViewmodelArmConfig = NULL;
-
+      
 			m_flLastSpawnTimeIndex = gpGlobals->curtime;
 
 			if ( m_bUseNewAnimstate && m_PlayerAnimStateCSGO )
@@ -2463,6 +2460,14 @@ void C_CSPlayer::ProcessMuzzleFlashEvent()
 		{
 			DispatchParticleEffect( pszEffect, PATTACH_POINT_FOLLOW, pWeapon, iAttachmentIndex, false );
 		}
+	}
+
+	// Brass Eject Effect.
+	iAttachmentIndex = pWeapon->GetEjectBrassAttachmentIndex( pWeapon );
+	pszEffect = pWeapon->GetCSWpnData().m_szEjectBrassEffect;
+	if ( pszEffect && Q_strlen(pszEffect ) > 0 && iAttachmentIndex >= 0 && pWeapon->ShouldDraw() && pWeapon->IsVisible() && !pWeapon->GetOwner()->IsDormant() )
+	{
+		DispatchParticleEffect( pszEffect, PATTACH_POINT_FOLLOW, pWeapon, iAttachmentIndex, false );
 	}
 }
 

@@ -106,6 +106,8 @@ public:
 
 	// utility
 	void GetDispSurfNormal( int ndxFace, Vector &pt, Vector &ptNormal, bool bInside );
+	void GetDispSurfPointAndNormalFromUV( int ndxFace, Vector &pt, Vector &ptNormal,
+										  Vector2D &uv, bool bInside );
 	void GetDispSurf( int ndxFace, CVRADDispColl **ppDispTree );
 
 	// bsp tree functions
@@ -164,7 +166,7 @@ private:
 											radial_t *pRadial, int ndxRadial, bool bBump,
 											CUtlVector<CPatch*> &interestingPatches );
 
-	bool IsNeighbor( int iDispFace, int iNeighborFace );
+	bool IsNeighbor( int iDispFace, int iNeighborFace, bool bCheck2ndDegreeNeighbors = false );
 
 	void GetInterestingPatchesForLuxels( 
 		int ndxFace,
@@ -657,6 +659,33 @@ void CVRadDispMgr::GetDispSurfNormal( int ndxFace, Vector &pt, Vector &ptNormal,
 	pDispTree->DispUVToSurfPoint( uv, pt, 1.0f );
 }
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CVRadDispMgr::GetDispSurfPointAndNormalFromUV( int ndxFace, Vector &pt, Vector &ptNormal,
+													Vector2D &uv, bool bInside )
+{
+	// get the displacement surface data
+	DispCollTree_t &dispTree = m_DispTrees[ g_pFaces[ ndxFace ].dispinfo ];
+	CVRADDispColl *pDispTree = dispTree.m_pDispTree;
+
+	if ( bInside )
+	{
+		if ( uv[ 0 ] < 0.0f || uv[ 0 ] > 1.0f ) { Msg( "Disp UV (%f) outside bounds!\n", uv[ 0 ] ); }
+		if ( uv[ 1 ] < 0.0f || uv[ 1 ] > 1.0f ) { Msg( "Disp UV (%f) outside bounds!\n", uv[ 1 ] ); }
+	}
+
+	if ( uv[ 0 ] < 0.0f ) { uv[ 0 ] = 0.0f; }
+	if ( uv[ 0 ] > 1.0f ) { uv[ 0 ] = 1.0f; }
+	if ( uv[ 1 ] < 0.0f ) { uv[ 1 ] = 0.0f; }
+	if ( uv[ 1 ] > 1.0f ) { uv[ 1 ] = 1.0f; }
+
+	// get the normal at "pt"
+	pDispTree->DispUVToSurfNormal( uv, ptNormal );
+
+	// get the new "pt"
+	pDispTree->DispUVToSurfPoint( uv, pt, 1.0f );
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -907,7 +936,7 @@ void AddSampleLightToRadial( Vector const &samplePos, Vector const &sampleNormal
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-bool CVRadDispMgr::IsNeighbor( int iFace, int iNeighborFace )
+bool CVRadDispMgr::IsNeighbor( int iFace, int iNeighborFace, bool bCheck2ndDegreeNeighbors )
 {
 	if ( iFace == iNeighborFace )
 		return true;
@@ -917,6 +946,19 @@ bool CVRadDispMgr::IsNeighbor( int iFace, int iNeighborFace )
 	{
 		if ( pFaceNeighbor->neighbor[iNeighbor] == iNeighborFace )
 			return true;
+	}
+
+	if ( bCheck2ndDegreeNeighbors )
+	{
+		for ( int iNeighbor = 0; iNeighbor < pFaceNeighbor->numneighbors; iNeighbor++ )
+		{
+			faceneighbor_t *pFaceNeighbor2 = &faceneighbor[ pFaceNeighbor->neighbor[ iNeighbor ] ];
+			for ( int iNeighbor2 = 0; iNeighbor2 < pFaceNeighbor2->numneighbors; iNeighbor2++ )
+			{
+				if ( pFaceNeighbor2->neighbor[ iNeighbor2 ] == iNeighborFace )
+					return true;
+			}
+		}
 	}
 
 	return false;
@@ -1338,7 +1380,7 @@ void CVRadDispMgr::GetInterestingPatchesForLuxels(
 						{
 							pPatch->m_IterationKey = curIterationKey;
 							
-							if ( IsNeighbor( ndxFace, pPatch->faceNumber ) )
+							if ( IsNeighbor( ndxFace, pPatch->faceNumber, g_bLargeDispSampleRadius ) )
 							{
 								interestingPatches.AddToTail( pPatch );
 							}

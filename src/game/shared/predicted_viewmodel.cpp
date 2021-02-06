@@ -236,19 +236,19 @@ void CPredictedViewModel::ApplyViewModelPitchAndDip( CBasePlayer *owner, Vector&
 void CPredictedViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePosition, const QAngle& eyeAngles )
 {
 #if defined( CLIENT_DLL )
-	if ( cl_use_new_headbob.GetBool() == false )
+	if ( !cl_use_new_headbob.GetBool() )
 	{
 		BaseClass::CalcViewModelView( owner, eyePosition, eyeAngles );
-#if IRONSIGHT
-		CalcIronsightView( eyePosition, eyeAngles );
-#endif
-		return;
 	}
+	else
+	{
+		Vector vecNewOrigin = eyePosition;
+		QAngle vecNewAngles = eyeAngles;
 
-	Vector vecNewOrigin = eyePosition;
-	QAngle vecNewAngles = eyeAngles;
+		ApplyViewModelPitchAndDip( owner, vecNewOrigin, vecNewAngles );
 
-	ApplyViewModelPitchAndDip( owner, vecNewOrigin, vecNewAngles );
+		BaseClass::CalcViewModelView( owner, vecNewOrigin, vecNewAngles );
+	}
 
 #if IRONSIGHT
 	CalcIronsightView( eyePosition, eyeAngles );

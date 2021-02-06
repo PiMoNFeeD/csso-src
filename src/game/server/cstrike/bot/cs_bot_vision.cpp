@@ -176,15 +176,15 @@ void CCSBot::UpdateLookAngles( void )
 	// springs are stiffer when attacking, so we can track and move between targets better
 	if (IsAttacking())
 	{
-		stiffness = 300.0f;
-		damping = 30.0f;			// 20
-		maxAccel = 3000.0f;	// 4000
+		stiffness = GetProfile()->GetLookAngleStiffnessAttacking();
+		damping = GetProfile()->GetLookAngleDampingAttacking();
+		maxAccel = GetProfile()->GetLookAngleMaxAccelerationAttacking();
 	}
 	else
 	{
-		stiffness = 200.0f;
-		damping = 25.0f;
-		maxAccel = 3000.0f;
+		stiffness = GetProfile()->GetLookAngleStiffnessNormal();
+		damping = GetProfile()->GetLookAngleDampingNormal();
+		maxAccel = GetProfile()->GetLookAngleMaxAccelerationNormal();
 	}
 
 	// these may be overridden by ladder logic
@@ -236,8 +236,8 @@ void CCSBot::UpdateLookAngles( void )
 	*/
 
 	// if almost at target angle, snap to it
-	const float onTargetTolerance = 1.0f;		// 3
-	if (angleDiff < onTargetTolerance && angleDiff > -onTargetTolerance)
+	const float onTargetTolerance = 0; // 1.0f;		// 3
+	if ( fabsf(angleDiff) < onTargetTolerance )
 	{
 		m_lookYawVel = 0.0f;
 		viewAngles.y = useYaw;
@@ -272,8 +272,7 @@ void CCSBot::UpdateLookAngles( void )
 
 	angleDiff = AngleNormalize( angleDiff );
 
-
-	if (false && angleDiff < onTargetTolerance && angleDiff > -onTargetTolerance)
+	if ( false && fabsf(angleDiff) < onTargetTolerance )
 	{
 		m_lookPitchVel = 0.0f;
 		viewAngles.x = usePitch;
@@ -344,7 +343,7 @@ bool CCSBot::IsVisible( const Vector &pos, bool testFOV, const CBaseEntity *igno
 	// Must include CONTENTS_MONSTER to pick up all non-brush objects like barrels
 	trace_t result;
 	CTraceFilterNoNPCsOrPlayer traceFilter( ignore, COLLISION_GROUP_NONE );
-	UTIL_TraceLine( EyePositionConst(), pos, MASK_VISIBLE_AND_NPCS, &traceFilter, &result );
+	UTIL_TraceLine( EyePositionConst(), pos, MASK_VISIBLE_AND_NPCS|CONTENTS_BLOCKLOS, &traceFilter, &result );
 	if (result.fraction != 1.0f)
 		return false;
 
@@ -1114,7 +1113,7 @@ bool CCSBot::IsNoticable( const CCSPlayer *player, unsigned char visParts ) cons
 
 
 	// harder to notice when crouched
-	bool isCrouching = (player->GetFlags() & FL_DUCKING);
+	bool isCrouching = (player->GetFlags() & FL_DUCKING) != 0;
 
 
 	// moving players are easier to spot
@@ -1819,8 +1818,7 @@ void CCSBot::UpdatePanicLookAround( void )
 	newAngles.x = RandomFloat( -30.0f, 30.0f );
 
 	// Look directly behind at a random offset in a 90 window.
-	float yaw = RandomFloat( 135.0f, 225.0f );
-	newAngles.y = eyeAngles.y + yaw;
+	newAngles.y = eyeAngles.y + 180.0f + RandomFloat(-45.0f, +45.0f );
 	newAngles.z = 0.0f;
 
 	Vector forward;

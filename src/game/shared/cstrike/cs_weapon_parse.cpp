@@ -388,10 +388,6 @@ void CCSWeaponInfo::Parse( KeyValues *pKeyValuesData, const char *szWeaponName )
 	m_iBullets			= pKeyValuesData->GetInt( "Bullets", 1 );
 	m_flCycleTime		= pKeyValuesData->GetFloat( "CycleTime", 0.15 );
 	m_flCycleTimeAlt	= pKeyValuesData->GetFloat( "CycleTimeAlt", 0.15 );
-	m_bAccuracyQuadratic= pKeyValuesData->GetInt( "AccuracyQuadratic", 0 );
-	m_flAccuracyDivisor	= pKeyValuesData->GetFloat( "AccuracyDivisor", -1 ); // -1 = off
-	m_flAccuracyOffset	= pKeyValuesData->GetFloat( "AccuracyOffset", 0 );
-	m_flMaxInaccuracy	= pKeyValuesData->GetFloat( "MaxInaccuracy", 0 );
 
 	// new accuracy model parameters
 	m_fSpread[0]				= pKeyValuesData->GetFloat("Spread", 0.0f);
@@ -423,6 +419,10 @@ void CCSWeaponInfo::Parse( KeyValues *pKeyValuesData, const char *szWeaponName )
 
 	// grenade parameters
 	m_fThrowVelocity	= pKeyValuesData->GetFloat( "ThrowVelocity", 0.0f );
+
+	// eject brass variables
+	const char* pEjectBrassEffect = pKeyValuesData->GetString( "EjectBrassEffect", "" );
+	Q_strncpy( m_szEjectBrassEffect, pEjectBrassEffect, sizeof( m_szEjectBrassEffect ) );
 
 	// tracer variables
 	m_iTracerFrequency[0] = pKeyValuesData->GetInt( "TracerFrequency", 0 );

@@ -45,11 +45,6 @@ $Project "game_shader_dx9"
 	"materialsystem\stdshaders\game_shader_dx9_hl2mp.vpc" [$HL2MP]
 }
 
-$Project "stdshader_dx9"
-{
-	"materialsystem\stdshaders\stdshader_dx9.vpc" [$WINDOWS||$X360||$POSIX]
-}
-
 $Project "glview"
 {
 	"utils\glview\glview.vpc" [$WIN32]

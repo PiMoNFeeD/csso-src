@@ -936,9 +936,12 @@ public:
 
 	void OnEnteredNavArea( CNavArea *newArea );						///< invoked when bot enters a nav area
 
-private:
 	#define IS_FOOTSTEP true
 	void OnAudibleEvent( IGameEvent *event, CBasePlayer *player, float range, PriorityType priority, bool isHostile, bool isFootstep = false, const Vector *actualOrigin = NULL );	///< Checks if the bot can hear the event
+
+protected:
+
+	float SlowNoise( float fTau ) const;
 
 private:
 	friend class CCSBotManager;
@@ -1194,13 +1197,17 @@ private:
 	float m_lookYawVel;
 
 	//- aim angle mechanism -----------------------------------------------------------------------------------------
-	Vector m_aimOffset;												///< current error added to victim's position to get actual aim spot
-	Vector m_aimOffsetGoal;											///< desired aim offset
-	float m_aimOffsetTimestamp;										///< time of next offset adjustment
-	float m_aimSpreadTimestamp;										///< time used to determine max spread as it begins to tighten up
-	void SetAimOffset( float accuracy );							///< set the current aim offset
-	void UpdateAimOffset( void );									///< wiggle aim error based on m_accuracy
-	Vector m_aimSpot;												///< the spot we are currently aiming to fire at
+	void PickNewAimSpot();											///< set the current aim offset
+	void UpdateAimPrediction( void );								///< wiggle aim based on aim error term
+	Vector m_targetSpot;											///< the spot we currently wish to fire at
+	Vector m_targetSpotVelocity;									///< the spot we currently wish to fire at
+	Vector m_targetSpotPredicted;									///< the spot we currently wish to fire at
+	QAngle m_aimError;
+	QAngle m_aimGoal;
+	float m_targetSpotTime;
+	float m_aimFocus;												///< radius of aim focus
+	float m_aimFocusInterval;										///< time interval of current offset adjustment (can be random)
+	float m_aimFocusNextUpdate;										///< time of next offset adjustment
 
 	struct PartInfo
 	{

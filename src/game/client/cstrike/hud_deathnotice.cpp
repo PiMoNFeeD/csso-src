@@ -481,8 +481,7 @@ void CHudDeathNotice::FireGameEvent( IGameEvent *event )
 	// the event should be "player_death"
 	
 	int iKiller = engine->GetPlayerForUserID( event->GetInt("attacker") );
-	int iOriginalAssister = engine->GetPlayerForUserID( event->GetInt("assister") );
-	int iAssister = iOriginalAssister;
+	int iAssister = engine->GetPlayerForUserID( event->GetInt("assister") );
 	int iVictim = engine->GetPlayerForUserID( event->GetInt("userid") );
 	const char *killedwith = event->GetString( "weapon" );
 	bool headshot = event->GetInt( "headshot" ) > 0;
@@ -529,6 +528,9 @@ void CHudDeathNotice::FireGameEvent( IGameEvent *event )
 			if ( pWeaponInfo )
 				thrusmoke = (pWeaponInfo->m_WeaponType != WEAPONTYPE_GRENADE);
 		}
+		// no thrusmoke icon for inferno as well
+		else if ( !V_strcmp( killedwith, "inferno" ) )
+			thrusmoke = false;
 	}
 
 	char fullkilledwith[128];
@@ -548,6 +550,9 @@ void CHudDeathNotice::FireGameEvent( IGameEvent *event )
 		// Remove the oldest one in the queue, which will always be the first
 		m_DeathNotices.Remove(0);
 	}
+	// if our attacker is the same as our assiter, it means a bot attacked the victim and a player took over that bot
+	if ( iAssister == iKiller )
+		iAssister = 0;
 
 	// if our attacker is the same as our assiter, it means a bot attacked the victim and a player took over that bot
 	if ( iAssister == iKiller )
@@ -600,7 +605,7 @@ void CHudDeathNotice::FireGameEvent( IGameEvent *event )
 	deathMsg.bThruSmoke = thrusmoke;
 	deathMsg.bDomination = event->GetInt( "dominated" ) > 0 || (pKiller != NULL && pKiller->IsPlayerDominated( iVictim ));
 	deathMsg.bRevenge = event->GetInt( "revenge" ) > 0;
-	deathMsg.bAssisted = iOriginalAssister > 0;
+	deathMsg.bAssisted = iAssister > 0;
 
 	// Try and find the death identifier in the icon list
 	deathMsg.iconDeath = gHUD.GetIcon( fullkilledwith );

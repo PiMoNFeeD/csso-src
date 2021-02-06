@@ -98,6 +98,9 @@ bool CHudRoundTimer::ShouldDraw()
 	if ( CSGameRules() && CSGameRules()->IsWarmupPeriodPaused() )
 		return false;
 
+	if ( CSGameRules() && CSGameRules()->IsMatchWaitingForResume() && CSGameRules()->IsFreezePeriod() )
+		return false;
+
 	return true;
 }
 

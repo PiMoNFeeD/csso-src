@@ -179,7 +179,40 @@ void TestLine( const FourVectors& start, const FourVectors& stop,
 		*pFractionVisible = MinSIMD( *pFractionVisible, coverageCallback.GetFractionVisible() );
 }
 
+void TestLine_IgnoreSky( const FourVectors& start, const FourVectors& stop,
+						 fltx4 *pFractionVisible, int static_prop_index_to_ignore )
+{
+	FourRays myrays;
+	myrays.origin = start;
+	myrays.direction = stop;
+	myrays.direction -= myrays.origin;
+	fltx4 len = myrays.direction.length();
+	myrays.direction *= ReciprocalSIMD( len );
 
+	RayTracingResult rt_result;
+	CCoverageCountTexture coverageCallback;
+
+	g_RtEnv.Trace4Rays(myrays, Four_Zeros, len, &rt_result, TRACE_ID_STATICPROP | static_prop_index_to_ignore, g_bTextureShadows ? &coverageCallback : 0 );
+
+	// Assume we can see the targets unless we get hits
+	float visibility[4];
+	for ( int i = 0; i < 4; i++ )
+	{
+		visibility[i] = 1.0f;
+		if ( ( rt_result.HitIds[i] != -1 ) &&
+			 ( rt_result.HitDistance.m128_f32[i] < len.m128_f32[i] ) )
+		{
+			int id = g_RtEnv.OptimizedTriangleList[rt_result.HitIds[i]].m_Data.m_IntersectData.m_nTriangleID;
+			if ( !( id & TRACE_ID_SKY ) )
+			{
+				visibility[i] = 0.0f;
+			}
+		}
+	}
+	*pFractionVisible = LoadUnalignedSIMD( visibility );
+	if ( g_bTextureShadows )
+		*pFractionVisible = MinSIMD( *pFractionVisible, coverageCallback.GetFractionVisible() );
+}
 
 /*
 ================

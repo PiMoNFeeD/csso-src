@@ -61,6 +61,8 @@ int MapList_ListMaps( const char *pszSubString, bool listobsolete, bool verbose,
 
 extern CNetworkStringTableContainer *networkStringTableContainerServer;
 
+extern ConVar host_timescale;
+
 CSharedEdictChangeInfo g_SharedEdictChangeInfo;
 CSharedEdictChangeInfo *g_pSharedChangeInfo = &g_SharedEdictChangeInfo;
 IAchievementMgr *g_pAchievementMgr = NULL;
@@ -1472,6 +1474,11 @@ public:
 		return sv.IsPaused();
 	}
 
+	virtual float GetTimescale( void ) const
+	{
+		return sv.GetTimescale() * host_timescale.GetFloat();
+	}
+
 	virtual void SetFakeClientConVarValue( edict_t *pEntity, const char *pCvarName, const char *value )
 	{
 		int clientnum = NUM_FOR_EDICT( pEntity );
@@ -1707,6 +1714,11 @@ public:
 			return pBSPData->map_vis->numclusters;
 		}
 		return 0;
+	}
+
+	virtual void SetTimescale( float flTimescale )
+	{
+		sv.SetTimescale( flTimescale );
 	}
 
 	virtual int GetServerVersion() const OVERRIDE

@@ -12,6 +12,10 @@
 #include "entitylist.h"
 #include "ai_hull.h"
 #include "entityoutput.h"
+#ifdef CSTRIKE_DLL
+#include "cs_player.h"
+#include "cs_shareddefs.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -646,7 +650,11 @@ void CGamePlayerEquip::Touch( CBaseEntity *pOther )
 
 void CGamePlayerEquip::EquipPlayer( CBaseEntity *pEntity )
 {
+#ifdef CSTRIKE_DLL
+	CCSPlayer *pPlayer = ToCSPlayer(pEntity);
+#else
 	CBasePlayer *pPlayer = ToBasePlayer(pEntity);
+#endif
 
 	if ( !pPlayer )
 		return;
@@ -657,7 +665,21 @@ void CGamePlayerEquip::EquipPlayer( CBaseEntity *pEntity )
 			break;
 		for ( int j = 0; j < m_weaponCount[i]; j++ )
 		{
- 			pPlayer->GiveNamedItem( STRING(m_weaponNames[i]) );
+#ifdef CSTRIKE_DLL
+			// PiMoN: bruh... if its a knife, give the correct one from loadout
+			if ( !Q_strcmp( "weapon_knife", STRING( m_weaponNames[i] ) ) )
+			{
+				if ( pPlayer->GetTeamNumber() == TEAM_CT )
+					pPlayer->GiveNamedItem( KnivesEntities[pPlayer->m_iLoadoutSlotKnifeWeaponCT + 1] );
+				else if ( pPlayer->GetTeamNumber() == TEAM_TERRORIST )
+					pPlayer->GiveNamedItem( KnivesEntities[pPlayer->m_iLoadoutSlotKnifeWeaponT + 1] );
+				else
+					// is it even possible??
+					pPlayer->GiveNamedItem( STRING( m_weaponNames[i] ) );
+			}
+			else
+#endif
+ 				pPlayer->GiveNamedItem( STRING(m_weaponNames[i]) );
 		}
 	}
 }

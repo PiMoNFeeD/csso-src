@@ -421,6 +421,8 @@ public:
 	virtual int			GetDemoPlaybackTotalTicks( void ) = 0;
 	// Is the game paused?
 	virtual bool		IsPaused( void ) = 0;
+	// What is the game timescale multiplied with the host_timescale?
+	virtual float GetTimescale( void ) const = 0;
 	// Is the game currently taking a screenshot?
 	virtual bool		IsTakingScreenshot( void ) = 0;
 	// Is this a HLTV broadcast ?
@@ -520,6 +522,8 @@ public:
 	virtual void			OnStorageDeviceDetached( void ) = 0;
 
 	virtual void			ResetDemoInterpolation( void ) = 0;
+
+	virtual void SetTimescale( float flTimescale ) = 0;
 
 	// Methods to set/get a gamestats data container so client & server running in same process can send combined data
 	virtual void SetGamestatsData( CGamestatsData *pGamestatsData ) = 0;

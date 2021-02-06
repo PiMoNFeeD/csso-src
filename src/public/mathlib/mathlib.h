@@ -1845,6 +1845,13 @@ int PolyFromPlane( Vector *outVerts, const Vector& normal, float dist, float fHa
 int ClipPolyToPlane( Vector *inVerts, int vertCount, Vector *outVerts, const Vector& normal, float dist, float fOnPlaneEpsilon = 0.1f );
 int ClipPolyToPlane_Precise( double *inVerts, int vertCount, double *outVerts, const double *normal, double dist, double fOnPlaneEpsilon = 0.1 );
 
+/// return surface area of an AABB
+FORCEINLINE float BoxSurfaceArea( Vector const &vecBoxMin, Vector const &vecBoxMax )
+{
+	Vector boxdim = vecBoxMax - vecBoxMin;
+	return 2.0 * ( ( boxdim[0] * boxdim[2] ) + ( boxdim[0] * boxdim[1] ) + ( boxdim[1] * boxdim[2] ) );
+}
+
 //-----------------------------------------------------------------------------
 // Computes a reasonable tangent space for a triangle
 //-----------------------------------------------------------------------------

@@ -2132,6 +2132,7 @@ void CBasePlayer::PlayerDeathThink(void)
 	
 	StopAnimation();
 
+	AddEffects( EF_NOINTERP );
 	IncrementInterpolationFrame();
 	m_flPlaybackRate = 0.0;
 	
@@ -2641,6 +2642,8 @@ void CBasePlayer::JumptoPosition(const Vector &origin, const QAngle &angles)
 	SetAbsVelocity( vec3_origin );	// stop movement
 	SetLocalAngles( angles );
 	SnapEyeAngles( angles );
+
+	AddEffects( EF_NOINTERP );
 }
 
 bool CBasePlayer::SetObserverTarget(CBaseEntity *target)
@@ -4961,7 +4964,7 @@ void CBasePlayer::Spawn( void )
 	
  // only preserve the shadow flag
 	int effects = GetEffects() & EF_NOSHADOW;
-	SetEffects( effects );
+	SetEffects( effects | EF_NOINTERP );
 
 	IncrementInterpolationFrame();
 

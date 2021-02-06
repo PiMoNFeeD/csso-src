@@ -59,7 +59,7 @@ int		num_edge_verts;
 int		edge_verts[MAX_MAP_VERTS];
 
 
-float	g_maxLightmapDimension = 32;
+float	g_maxLightmapDimension = MAX_BRUSH_LIGHTMAP_DIM_WITHOUT_BORDER;
 
 
 face_t *NewFaceFromFace (face_t *f);

@@ -1740,7 +1740,8 @@ void CCSBotManager::OnServerShutdown( IGameEvent *event )
 			"bot_chatter",
 			"bot_prefix",
 			"bot_join_team",
-			"bot_defer_to_human",
+			"bot_defer_to_human_items",
+			"bot_defer_to_human_goals",
 #ifdef CS_SHIELD_ENABLED
 			"bot_allow_shield",
 #endif // CS_SHIELD_ENABLED

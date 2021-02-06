@@ -38,12 +38,25 @@ public:
 		m_skill = 0.0f;	
 		m_teamwork = 0.0f;
 		m_weaponPreferenceCount = 0;
+
+		m_aimFocusInitial = 0.0f;
+		m_aimFocusDecay = 1.0f;
+		m_aimFocusOffsetScale = 0.0f;
+		m_aimFocusInterval = .5f;
+
 		m_cost = 0;
 		m_skin = 0;	
 		m_difficultyFlags = 0;
 		m_voicePitch = 100;
 		m_reactionTime = 0.3f;
 		m_attackDelay = 0.0f;
+		m_lookAngleMaxAccelNormal = 0.0f;
+		m_lookAngleStiffnessNormal = 0.0f;
+		m_lookAngleDampingNormal = 0.0f;
+		m_lookAngleMaxAccelAttacking = 0.0f;
+		m_lookAngleStiffnessAttacking = 0.0f;
+		m_lookAngleDampingAttacking = 0.0f;
+
 		m_teams = TEAM_UNASSIGNED;
 		m_voiceBank = 0;
 		m_prefersSilencer = false;
@@ -60,6 +73,11 @@ public:
 	float GetSkill( void ) const						{ return m_skill; }
 	float GetTeamwork( void ) const						{ return m_teamwork; }
 
+	float GetAimFocusInitial() const					{ return m_aimFocusInitial; }
+	float GetAimFocusDecay() const						{ return m_aimFocusDecay; }
+	float GetAimFocusOffsetScale() const				{ return m_aimFocusOffsetScale; }
+	float GetAimFocusInterval() const					{ return m_aimFocusInterval; }
+
 	CSWeaponID GetWeaponPreference( int i ) const		{ return m_weaponPreference[ i ]; }
 	const char *GetWeaponPreferenceAsString( int i ) const;
 	int GetWeaponPreferenceCount( void ) const			{ return m_weaponPreferenceCount; }
@@ -73,6 +91,13 @@ public:
 	float GetReactionTime( void ) const					{ return m_reactionTime; }
 	float GetAttackDelay( void ) const					{ return m_attackDelay; }
 	int GetVoiceBank() const							{ return m_voiceBank; }
+
+	float GetLookAngleMaxAccelerationNormal() const		{ return m_lookAngleMaxAccelNormal; }
+	float GetLookAngleStiffnessNormal() const			{ return m_lookAngleStiffnessNormal; }
+	float GetLookAngleDampingNormal() const				{ return m_lookAngleDampingNormal; }
+	float GetLookAngleMaxAccelerationAttacking() const	{ return m_lookAngleMaxAccelAttacking; }
+	float GetLookAngleStiffnessAttacking() const		{ return m_lookAngleStiffnessAttacking; }
+	float GetLookAngleDampingAttacking() const			{ return m_lookAngleDampingAttacking; }
 
 	bool IsValidForTeam( int team ) const;
 
@@ -90,6 +115,11 @@ private:
 	float m_skill;										///< percentage: 0 = terrible, 1 = expert
 	float m_teamwork;									///< percentage: 0 = rogue, 1 = complete obeyance to team, lots of comm
 
+	float m_aimFocusInitial;				// initial minimum aim error on first attack
+	float m_aimFocusDecay;					// how quickly our focus error decays (scale/sec)
+	float m_aimFocusOffsetScale;			// how much aim focus error we get based on maximum angle distance from our view angle
+	float m_aimFocusInterval;				// how frequently we update our focus
+
 	enum { MAX_WEAPON_PREFS = 16 };
 	CSWeaponID m_weaponPreference[ MAX_WEAPON_PREFS ];	///< which weapons this bot likes to use, in order of priority
 	int m_weaponPreferenceCount;
@@ -103,6 +133,14 @@ private:
 	int m_teams;										///< teams for which this profile is valid
 
 	bool m_prefersSilencer;								///< does the bot prefer to use silencers?
+
+	float m_lookAngleMaxAccelNormal;		// Acceleration of look angle spring under normal conditions
+	float m_lookAngleStiffnessNormal;		// Stiffness of look angle spring under normal conditions
+	float m_lookAngleDampingNormal;			// Damping of look angle spring under normal conditions
+
+	float m_lookAngleMaxAccelAttacking;		// Acceleration of look angle spring under attack conditions
+	float m_lookAngleStiffnessAttacking;	// Stiffness of look angle spring under attack conditions
+	float m_lookAngleDampingAttacking;		// Damping of look angle spring under attack conditions
 
 	int m_voiceBank;									///< Index of the BotChatter.db voice bank this profile uses (0 is the default)
 
@@ -129,6 +167,18 @@ inline void BotProfile::Inherit( const BotProfile *parent, const BotProfile *bas
 
 	if (parent->m_teamwork != baseline->m_teamwork)
 		m_teamwork = parent->m_teamwork;
+
+	if (parent->m_aimFocusInitial != baseline->m_aimFocusInitial)
+		m_aimFocusInitial = parent->m_aimFocusInitial;
+
+	if (parent->m_aimFocusDecay != baseline->m_aimFocusDecay)
+		m_aimFocusDecay = parent->m_aimFocusDecay;
+
+	if (parent->m_aimFocusOffsetScale != baseline->m_aimFocusOffsetScale)
+		m_aimFocusOffsetScale = parent->m_aimFocusOffsetScale;
+
+	if (parent->m_aimFocusInterval != baseline->m_aimFocusInterval)
+		m_aimFocusInterval = parent->m_aimFocusInterval;
 
 	if (parent->m_weaponPreferenceCount != baseline->m_weaponPreferenceCount)
 	{
@@ -231,6 +281,10 @@ public:
 	typedef CUtlVector<char *> VoiceBankList;
 	const VoiceBankList *GetVoiceBanks( void ) const		{ return &m_voiceBanks; }
 	int FindVoiceBankIndex( const char *filename );		///< return index of the (custom) bot phrase db, inserting it if needed
+
+protected:
+	void ParseDifficultySetting( unsigned char &difficultyFlags, char* token );
+	void ParseWeaponPreference( bool &isFirstWeaponPref, int &weaponPreferenceCount, CSWeaponID* weaponPreference, char* token );
 
 protected:
 	BotProfileList m_profileList;							///< the list of all bot profiles

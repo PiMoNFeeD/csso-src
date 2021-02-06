@@ -19,7 +19,6 @@
  */
 void DefuseBombState::OnEnter( CCSBot *me )
 {
-	me->Crouch();
 	me->SetDisposition( CCSBot::SELF_DEFENSE );
 	me->GetChatter()->Say( "DefusingBomb" );
 }
@@ -31,6 +30,9 @@ void DefuseBombState::OnEnter( CCSBot *me )
 void DefuseBombState::OnUpdate( CCSBot *me )
 {
 	const Vector *bombPos = me->GetGameState()->GetBombPosition();
+
+	// stay in SELF_DEFENSE so we get to the bomb in time!
+	me->SetDisposition( CCSBot::SELF_DEFENSE );
 
 	if (bombPos == NULL)
 	{
@@ -74,7 +76,6 @@ void DefuseBombState::OnUpdate( CCSBot *me )
 //--------------------------------------------------------------------------------------------------------------
 void DefuseBombState::OnExit( CCSBot *me )
 {
-	me->StandUp();
 	me->ResetStuckMonitor();
 	me->SetTask( CCSBot::SEEK_AND_DESTROY );
 	me->SetDisposition( CCSBot::ENGAGE_AND_INVESTIGATE );

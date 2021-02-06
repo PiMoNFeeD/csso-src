@@ -10,6 +10,7 @@
 #include "cbase.h"
 #include "cs_bot.h"
 #include "cs_shareddefs.h"
+#include "cs_gamerules.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -72,7 +73,8 @@ ConVar cv_bot_join_team( "bot_join_team", "any", FCVAR_REPLICATED, "Determines t
 ConVar cv_bot_join_after_player( "bot_join_after_player", "1", FCVAR_REPLICATED, "If nonzero, bots wait until a player joins before entering the game." );
 ConVar cv_bot_auto_vacate( "bot_auto_vacate", "1", FCVAR_REPLICATED, "If nonzero, bots will automatically leave to make room for human players." );
 ConVar cv_bot_zombie( "bot_zombie", "0", FCVAR_REPLICATED | FCVAR_CHEAT, "If nonzero, bots will stay in idle mode and not attack." );
-ConVar cv_bot_defer_to_human( "bot_defer_to_human", "0", FCVAR_REPLICATED, "If nonzero and there is a human on the team, the bots will not do the scenario tasks." );
+ConVar cv_bot_defer_to_human_goals( "bot_defer_to_human_goals", "0", FCVAR_REPLICATED, "If nonzero and there is a human on the team, the bots will not do the scenario tasks." );
+ConVar cv_bot_defer_to_human_items( "bot_defer_to_human_items", "1", FCVAR_REPLICATED, "If nonzero and there is a human on the team, the bots will not get scenario items." );
 ConVar cv_bot_chatter( "bot_chatter", "normal", FCVAR_REPLICATED, "Control how bots talk. Allowed values: 'off', 'radio', 'minimal', or 'normal'." );
 ConVar cv_bot_profile_db( "bot_profile_db", "BotProfile.db", FCVAR_REPLICATED, "The filename from which bot profiles will be read." );
 ConVar cv_bot_dont_shoot( "bot_dont_shoot", "0", FCVAR_REPLICATED | FCVAR_CHEAT, "If nonzero, bots will not fire weapons (for debugging)." );
@@ -144,6 +146,14 @@ bool CCSBot::Initialize( const BotProfile *profile, int team )
 	if (GetTeamNumber() == 0)
 	{
 		HandleCommand_JoinTeam( m_desiredTeam );
+
+		// if we have map factions enabled, use them instead of random faction
+		if ( CSGameRules()->UseMapFactionsForThisPlayer( this ) && CSGameRules()->GetMapFactionsForThisPlayer( this ) > -1 )
+		{
+			HandleCommand_JoinClass( CSGameRules()->GetMapFactionsForThisPlayer( this ) );
+			return true;
+		}
+
 		int desiredClass = GetProfile()->GetSkin();
 		if ( m_desiredTeam == TEAM_CT )
 		{
@@ -271,9 +281,17 @@ void CCSBot::ResetValues( void )
 	m_lookYaw = 0.0f;
 	m_lookYawVel = 0.0f;
 
-	m_aimOffsetTimestamp = 0.0f;
-	m_aimSpreadTimestamp = 0.0f;
 	m_lookAtSpotState = NOT_LOOKING_AT_SPOT;
+
+	m_targetSpot.Zero();
+	m_targetSpotVelocity.Zero();
+	m_targetSpotPredicted.Zero();
+	m_aimError.Init();
+	m_aimGoal.Init();
+	m_targetSpotTime = 0.0f;
+	m_aimFocus = 0.0f;
+	m_aimFocusInterval = 0.0f;
+	m_aimFocusNextUpdate = 0.0f;
 
 	for( int p=0; p<MAX_PLAYERS; ++p )
 	{

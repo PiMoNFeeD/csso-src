@@ -947,9 +947,9 @@ int CCSBot::FindPathPoint( float aheadRange, Vector *point, int *prevIndex )
 		}
 	}
 
-	// if we hit a ladder, stop, or jump area, must stop (dont use ladder behind us)
+	// if we hit a ladder, stop, stair, or jump area, must stop (dont use ladder behind us)
 	if (startIndex > m_pathIndex && startIndex < m_pathLength && 
-		(m_path[ startIndex ].ladder || m_path[ startIndex ].area->GetAttributes() & (NAV_MESH_JUMP | NAV_MESH_STOP)))
+		(m_path[ startIndex ].ladder || m_path[ startIndex ].area->GetAttributes() & (NAV_MESH_JUMP | NAV_MESH_STOP | NAV_MESH_STAIRS)))
 	{
 		*point = m_path[ startIndex ].pos;
 		return startIndex;
@@ -962,7 +962,7 @@ int CCSBot::FindPathPoint( float aheadRange, Vector *point, int *prevIndex )
 
 	// if we hit a ladder, stop, or jump area, must stop
 	if (startIndex < m_pathLength && 
-		(m_path[ startIndex ].ladder || m_path[ startIndex ].area->GetAttributes() & (NAV_MESH_JUMP | NAV_MESH_STOP)))
+		(m_path[ startIndex ].ladder || m_path[ startIndex ].area->GetAttributes() & (NAV_MESH_JUMP | NAV_MESH_STOP | NAV_MESH_STAIRS)))
 	{
 		*point = m_path[ startIndex ].pos;
 		return startIndex;
@@ -1024,9 +1024,9 @@ int CCSBot::FindPathPoint( float aheadRange, Vector *point, int *prevIndex )
 			break;
 		}
 
-		// if we encounter a ladder or jump area, we must stop
+		// if we encounter a ladder, stairs, or jump area, we must stop
 		if (i < m_pathLength && 
-				(m_path[ i ].ladder || m_path[ i ].area->GetAttributes() & NAV_MESH_JUMP))
+				(m_path[ i ].ladder || m_path[ i ].area->GetAttributes() & (NAV_MESH_JUMP | NAV_MESH_STOP | NAV_MESH_STAIRS)))
 			break;
 
 		// Check straight-line path from our current position to this position
@@ -1108,7 +1108,7 @@ int CCSBot::FindPathPoint( float aheadRange, Vector *point, int *prevIndex )
 			{
 				toPoint.x = m_path[i].pos.x - myOrigin.x;
 				toPoint.y = m_path[i].pos.y - myOrigin.y;
-				if (m_path[i].ladder || m_path[i].area->GetAttributes() & NAV_MESH_JUMP || toPoint.IsLengthGreaterThan( epsilon ))
+				if (m_path[i].ladder || m_path[i].area->GetAttributes() & (NAV_MESH_JUMP | NAV_MESH_STOP | NAV_MESH_STAIRS) || toPoint.IsLengthGreaterThan( epsilon ))
 				{
 					*point = m_path[i].pos;
 					startIndex = i;
@@ -1284,9 +1284,9 @@ void CCSBot::FeelerReflexAdjustment( Vector *goalPosition )
 	Vector dir( BotCOS( m_forwardAngle ), BotSIN( m_forwardAngle ), 0.0f );
 	Vector lat( -dir.y, dir.x, 0.0f );
 
-	const float feelerOffset = (IsCrouching()) ? 15.0f : 20.0f;
-	const float feelerLengthRun = 50.0f;	// 100 - too long for tight hallways (cs_747)
-	const float feelerLengthWalk = 30.0f;
+	const float feelerOffset = (IsCrouching()) ? 5.0f : 10.0f;
+	const float feelerLengthRun = 25.0f;	// 50
+	const float feelerLengthWalk = 15.0f;
 	const float feelerHeight = StepHeight + 0.1f;	// if obstacle is lower than StepHeight, we'll walk right over it
 
 	float feelerLength = (IsRunning()) ? feelerLengthRun : feelerLengthWalk;

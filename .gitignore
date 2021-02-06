@@ -46,9 +46,6 @@ engine.lib
 gameui.pdb
 gameui.dll
 gameui.lib
-stdshader_dx9.pdb
-stdshader_dx9.dll
-stdshader_dx9.lib
 hlmv.pdb
 hlmv.exe
 hlmv.lib
@@ -57,6 +54,15 @@ halflife.res
 studiomdl.pdb
 studiomdl.exe
 studiomdl.lib
+vbsp.pdb
+vbsp.exe
+vbsp.lib
+vrad_dll.pdb
+vrad_dll.dll
+vrad_dll.lib
+vvis_dll.pdb
+vvis_dll.dll
+vvis_dll.lib
 datacache.pdb
 datacache.dll
 datacache.lib
@@ -92,6 +98,7 @@ stdshader_dx9.dylib.dSYM/
 mathlib.lib
 particles.lib
 tier1.lib
+raytrace.lib
 tier2.lib
 mdlobjects.lib
 

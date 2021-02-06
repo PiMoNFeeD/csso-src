@@ -60,6 +60,7 @@
 #include "weapon_decoy.h"
 #include "molotov_projectile.h"
 #include "cs_loadout.h"
+#include "item_healthshot.h"
 
 //=============================================================================
 // HPE_BEGIN
@@ -152,6 +153,8 @@ extern ConVar ammo_molotov_max;
 extern ConVar mp_buy_anywhere;
 
 extern ConVar mp_respawn_immunitytime;
+
+ConVar mp_drop_knife_enable( "mp_drop_knife_enable", "0", 0, "Allows players to drop knives." );
 
 ConVar mp_deathcam_skippable( "mp_deathcam_skippable", "1", FCVAR_REPLICATED, "Determines whether a player can early-out of the deathcam." );
 
@@ -1175,12 +1178,9 @@ void CCSPlayer::Spawn()
 			m_iClass = GetCSAgentInfoT( GetAgentID( GetTeamNumber() ) )->m_iClass;
 	}
 	// PiMoN: placing it here since the server can change the varriable mid-game
-	else if ( CSGameRules()->UseMapFactionsForThisPlayer(this) && ((GetTeamNumber() == TEAM_CT) ? (CSGameRules()->m_iMapFactionCT != NULL) : (CSGameRules()->m_iMapFactionT != NULL)) )
+	else if ( CSGameRules()->UseMapFactionsForThisPlayer(this) && CSGameRules()->GetMapFactionsForThisPlayer(this) > -1 )
 	{
-		if ( GetTeamNumber() == TEAM_CT )
-			m_iClass = CSGameRules()->m_iMapFactionCT;
-		else if ( GetTeamNumber() == TEAM_TERRORIST )
-			m_iClass = CSGameRules()->m_iMapFactionT;
+		m_iClass = CSGameRules()->GetMapFactionsForThisPlayer(this);
 	}
 
 	// Set their player model.
@@ -1395,10 +1395,6 @@ void CCSPlayer::GiveDefaultItems()
 
 	// Always give the player the knife.
 	CBaseCombatWeapon *pistol = Weapon_GetSlot( WEAPON_SLOT_PISTOL );
-	if ( pistol )
-	{
-		return;
-	}
 
 	if ( GetTeamNumber() == TEAM_CT )
 	{
@@ -1407,13 +1403,17 @@ void CCSPlayer::GiveDefaultItems()
 		else
 			GiveNamedItem( KnivesEntities[m_iLoadoutSlotKnifeWeaponCT + 1] );
 
-		if ( IsBot() )
-			GiveNamedItem( "weapon_hkp2000" );
-		else
+		if ( !pistol )
 		{
-			char weapon[32];
-			Q_snprintf( weapon, sizeof( weapon ), "weapon_%s", CSLoadout()->GetWeaponFromSlot( this, SLOT_HKP2000 ) );
-			GiveNamedItem( weapon );
+			if ( IsBot() )
+				GiveNamedItem( "weapon_hkp2000" );
+			else
+			{
+				char weapon[32];
+				Q_snprintf( weapon, sizeof( weapon ), "weapon_%s", CSLoadout()->GetWeaponFromSlot( this, SLOT_HKP2000 ) );
+				GiveNamedItem( weapon );
+			}
+			m_bUsingDefaultPistol = true;
 		}
 	}
 	else if ( GetTeamNumber() == TEAM_TERRORIST )
@@ -1423,7 +1423,11 @@ void CCSPlayer::GiveDefaultItems()
 		else
 			GiveNamedItem( KnivesEntities[m_iLoadoutSlotKnifeWeaponT + 1] );
 
-		GiveNamedItem( "weapon_glock" );
+		if ( !pistol )
+		{
+			GiveNamedItem( "weapon_glock" );
+			m_bUsingDefaultPistol = true;
+		}
 	}
 
 	if ( Weapon_GetSlot( WEAPON_SLOT_PISTOL ) )
@@ -3665,24 +3669,7 @@ void CCSPlayer::SetShieldDrawnState( bool bState )
 
 bool CCSPlayer::CSWeaponDrop( CBaseCombatWeapon *pWeapon, bool bDropShield, bool bThrowForward )
 {
-	Vector vTossPos = WorldSpaceCenter();
-	if (bThrowForward)
-	{
-		Vector vForward;
-		AngleVectors(EyeAngles(), &vForward, NULL, NULL);
-		vTossPos = vTossPos + vForward * 100;
-	}
-	return CSWeaponDrop( pWeapon, vTossPos, bDropShield );
-}
-
-bool CCSPlayer::CSWeaponDrop( CBaseCombatWeapon *pWeapon, Vector targetPos, bool bDropShield )
-{
 	bool bSuccess = false;
-
-	CWeaponCSBase *pCSWeapon = dynamic_cast< CWeaponCSBase* >( pWeapon );
-
-	if ( pWeapon )
-		pWeapon->ShowWeaponWorldModel( false );
 
 	if ( HasShield() && bDropShield == true )
 	{
@@ -3692,23 +3679,28 @@ bool CCSPlayer::CSWeaponDrop( CBaseCombatWeapon *pWeapon, Vector targetPos, bool
 
 	if ( pWeapon )
 	{
+		Vector vForward;
 
-		Weapon_Drop( pWeapon, &targetPos, NULL );
+		AngleVectors( EyeAngles(), &vForward, NULL, NULL );
+		//GetVectors( &vForward, NULL, NULL );
+		Vector vTossPos = WorldSpaceCenter();
+
+		if( bThrowForward )
+			vTossPos = vTossPos + vForward * 64;
+
+		Weapon_Drop( pWeapon, &vTossPos, NULL );
 
 		pWeapon->SetSolidFlags( FSOLID_NOT_STANDABLE | FSOLID_TRIGGER | FSOLID_USE_TRIGGER_BOUNDS );
 		pWeapon->SetMoveCollide( MOVECOLLIDE_FLY_BOUNCE );
 
+		CWeaponCSBase *pCSWeapon = dynamic_cast< CWeaponCSBase* >( pWeapon );
+
 		if( pCSWeapon )
 		{
-			//pCSWeapon->SetModel( pCSWeapon->GetWorldDroppedModel() ); // TODO: implement this later
 			pCSWeapon->SetWeaponModelIndex( pCSWeapon->GetCSWpnData().szWorldModel );
 
-			// set silencer bodygroup
-			if ( pCSWeapon->FindBodygroupByName( "silencer" ) > -1 )
-				pCSWeapon->SetBodygroup( pCSWeapon->FindBodygroupByName( "silencer" ), pCSWeapon->IsSilenced() ? 0 : 1 );
-
 			//Find out the index of the ammo type
-			int iAmmoIndex = pCSWeapon->GetPrimaryAmmoType();
+			/*int iAmmoIndex = pCSWeapon->GetPrimaryAmmoType();
 
 			//If it has an ammo type, find out how much the player has
 			if( iAmmoIndex != -1 )
@@ -3718,6 +3710,158 @@ bool CCSPlayer::CSWeaponDrop( CBaseCombatWeapon *pWeapon, Vector targetPos, bool
 				if ( IsAlive() && GetHealth() > 0 )
 				{
 					for ( int i=0; i<MAX_WEAPONS; ++i )
+					{
+						CBaseCombatWeapon *pOtherWeapon = GetWeapon(i);
+						if ( pOtherWeapon && pOtherWeapon != pWeapon && pOtherWeapon->GetPrimaryAmmoType() == iAmmoIndex )
+						{
+							bAmmoTypeInUse = true;
+							break;
+						}
+					}
+				}
+
+				if ( !bAmmoTypeInUse )
+				{
+					int iAmmoToDrop = GetAmmoCount( iAmmoIndex );
+
+					//Add this much to the dropped weapon
+					pCSWeapon->SetExtraAmmoCount( iAmmoToDrop );
+
+					//Remove all ammo of this type from the player
+					SetAmmoCount( 0, iAmmoIndex );
+				}
+			}*/
+		}
+
+		//=========================================
+		// Teleport the weapon to the player's hand
+		//=========================================
+		int iBIndex = -1;
+		int iWeaponBoneIndex = -1;
+
+		MDLCACHE_CRITICAL_SECTION();
+		CStudioHdr *hdr = pWeapon->GetModelPtr();
+		// If I have a hand, set the weapon position to my hand bone position.
+		if ( hdr && hdr->numbones() > 0 )
+		{
+			// Assume bone zero is the root
+			for ( iWeaponBoneIndex = 0; iWeaponBoneIndex < hdr->numbones(); ++iWeaponBoneIndex )
+			{
+				iBIndex = LookupBone( hdr->pBone( iWeaponBoneIndex )->pszName() );
+				// Found one!
+				if ( iBIndex != -1 )
+				{
+					break;
+				}
+			}
+
+			if ( iWeaponBoneIndex == hdr->numbones() )
+				 return true;
+
+			if ( iBIndex == -1 )
+			{
+				iBIndex = LookupBone( "ValveBiped.Bip01_R_Hand" );
+			}
+		}
+		else
+		{
+			iBIndex = LookupBone( "ValveBiped.Bip01_R_Hand" );
+		}
+
+		if ( iBIndex != -1)
+		{
+			Vector origin;
+			QAngle angles;
+			matrix3x4_t transform;
+
+			// Get the transform for the weapon bonetoworldspace in the NPC
+			GetBoneTransform( iBIndex, transform );
+
+			// find offset of root bone from origin in local space
+			// Make sure we're detached from hierarchy before doing this!!!
+			pWeapon->StopFollowingEntity();
+			pWeapon->SetAbsOrigin( Vector( 0, 0, 0 ) );
+			pWeapon->SetAbsAngles( QAngle( 0, 0, 0 ) );
+			pWeapon->InvalidateBoneCache();
+			matrix3x4_t rootLocal;
+			pWeapon->GetBoneTransform( iWeaponBoneIndex, rootLocal );
+
+			// invert it
+			matrix3x4_t rootInvLocal;
+			MatrixInvert( rootLocal, rootInvLocal );
+
+			matrix3x4_t weaponMatrix;
+			ConcatTransforms( transform, rootInvLocal, weaponMatrix );
+			MatrixAngles( weaponMatrix, angles, origin );
+
+			pWeapon->Teleport( &origin, &angles, NULL );
+
+			//Have to teleport the physics object as well
+
+			IPhysicsObject *pWeaponPhys = pWeapon->VPhysicsGetObject();
+
+			if( pWeaponPhys )
+			{
+				Vector vPos;
+				QAngle vAngles;
+				pWeaponPhys->GetPosition( &vPos, &vAngles );
+				pWeaponPhys->SetPosition( vPos, angles, true );
+
+				AngularImpulse	angImp(0,0,0);
+				Vector vecAdd = GetAbsVelocity();
+				pWeaponPhys->AddVelocity( &vecAdd, &angImp );
+			}
+		}
+
+		bSuccess = true;
+	}
+
+	return bSuccess;
+}
+
+bool CCSPlayer::CSWeaponDrop( CBaseCombatWeapon *pWeapon, Vector targetPos, bool bDropShield )
+{
+	bool bSuccess = false;
+
+	if ( HasShield() && bDropShield == true )
+	{
+		DropShield();
+		return true;
+	}
+
+	if ( pWeapon )
+	{
+		Vector vForward;
+
+		AngleVectors( EyeAngles(), &vForward, NULL, NULL );
+		//GetVectors( &vForward, NULL, NULL );
+
+		Weapon_Drop( pWeapon, &targetPos, NULL );
+
+		pWeapon->SetSolidFlags( FSOLID_NOT_STANDABLE | FSOLID_TRIGGER | FSOLID_USE_TRIGGER_BOUNDS );
+		pWeapon->SetMoveCollide( MOVECOLLIDE_FLY_BOUNCE );
+
+		CWeaponCSBase *pCSWeapon = dynamic_cast< CWeaponCSBase* >(pWeapon);
+
+		if ( pCSWeapon )
+		{
+			pCSWeapon->SetWeaponModelIndex( pCSWeapon->GetCSWpnData().szWorldModel );
+
+			// set silencer bodygroup
+			if ( pCSWeapon->FindBodygroupByName( "silencer" ) > -1 )
+				pCSWeapon->SetBodygroup( pCSWeapon->FindBodygroupByName( "silencer" ), pCSWeapon->IsSilenced() ? 0 : 1 );
+
+			//Find out the index of the ammo type
+			/*int iAmmoIndex = pCSWeapon->GetPrimaryAmmoType();
+
+			//If it has an ammo type, find out how much the player has
+			if ( iAmmoIndex != -1 )
+			{
+				// Check to make sure we don't have other weapons using this ammo type
+				bool bAmmoTypeInUse = false;
+				if ( IsAlive() && GetHealth() > 0 )
+				{
+					for ( int i = 0; i<MAX_WEAPONS; ++i )
 					{
 						CBaseCombatWeapon *pOtherWeapon = GetWeapon( i );
 						if ( pOtherWeapon && pOtherWeapon != pWeapon && pOtherWeapon->GetPrimaryAmmoType() == iAmmoIndex )
@@ -3731,18 +3875,14 @@ bool CCSPlayer::CSWeaponDrop( CBaseCombatWeapon *pWeapon, Vector targetPos, bool
 				if ( !bAmmoTypeInUse )
 				{
 					int iAmmoToDrop = GetAmmoCount( iAmmoIndex );
-					
-					// only add 1 ammo to dropped grenades
-					if( pCSWeapon->GetWeaponType() == WEAPONTYPE_GRENADE )
-						iAmmoToDrop = 0;
 
-//					//Add this much to the dropped weapon
-//					pCSWeapon->SetExtraAmmoCount( iAmmoToDrop );
+					//Add this much to the dropped weapon
+					pCSWeapon->SetExtraAmmoCount( iAmmoToDrop );
 
 					//Remove all ammo of this type from the player
 					SetAmmoCount( 0, iAmmoIndex );
 				}
-			}
+			}*/
 		}
 
 		//=========================================
@@ -3752,7 +3892,6 @@ bool CCSPlayer::CSWeaponDrop( CBaseCombatWeapon *pWeapon, Vector targetPos, bool
 		int iWeaponBoneIndex = -1;
 
 		MDLCACHE_CRITICAL_SECTION();
-
 
 		if ( !m_bUseNewAnimstate )
 		{
@@ -3884,7 +4023,7 @@ bool CCSPlayer::CSWeaponDrop( CBaseCombatWeapon *pWeapon, Vector targetPos, bool
 			//Have to teleport the physics object as well
 			IPhysicsObject *pWeaponPhys = pWeapon->VPhysicsGetObject();
 
-			if( pWeaponPhys )
+			if ( pWeaponPhys )
 			{
 				Vector vPos;
 				QAngle vAngles;
@@ -3897,11 +4036,9 @@ bool CCSPlayer::CSWeaponDrop( CBaseCombatWeapon *pWeapon, Vector targetPos, bool
 				pWeaponPhys->AddVelocity( &vecAdd, &angImp );
 			}
 		}
-		
+
 		bSuccess = true;
 	}
-	
-	UpdateAddonBits();
 
 	return bSuccess;
 }
@@ -5576,39 +5713,7 @@ bool CCSPlayer::ClientCommand( const CCommand &args )
 	}
 	else if ( FStrEq( pcmd, "drop" ) )
 	{
-		CWeaponCSBase *pWeapon = dynamic_cast< CWeaponCSBase* >( GetActiveWeapon() );
-
-		if( pWeapon )
-		{
-			//=============================================================================
-			// HPE_BEGIN:
-			// [dwenger] Determine value of dropped item.
-			//=============================================================================
-
-			if ( !pWeapon->IsAPriorOwner( this ) )
-			{
-				pWeapon->AddToPriorOwnerList( this );
-
-				CCS_GameStats.IncrementStat(this, CSTAT_ITEMS_DROPPED_VALUE, pWeapon->GetCSWpnData().GetWeaponPrice());
-			}
-
-			//=============================================================================
-			// HPE_END
-			//=============================================================================
-
-			CSWeaponType type = pWeapon->GetCSWpnData().m_WeaponType;
-
-			if( type != WEAPONTYPE_KNIFE && type != WEAPONTYPE_GRENADE )
-			{
-				if (CSGameRules()->GetCanDonateWeapon() && !pWeapon->GetDonated())
-				{
-					pWeapon->SetDonated(true);
-					pWeapon->SetDonor(this);
-				}
-				CSWeaponDrop( pWeapon, true, true );
-
-			}
-		}
+		HandleDropWeapon();
 
 		return true;
 	}
@@ -5918,8 +6023,7 @@ bool CCSPlayer::HandleCommand_JoinTeam( int team )
 	if ( team == GetTeamNumber() )
 	{
 		// if we don't have an agent and also map factions are disabled (or there are no default factions for current map) let the players choose a faction
-		if ( !HasAgentSet( GetTeamNumber() ) && (!CSGameRules()->UseMapFactionsForThisPlayer(this) ||
-			(CSGameRules()->UseMapFactionsForThisPlayer(this) && ((GetTeamNumber() == TEAM_CT) ? (CSGameRules()->m_iMapFactionCT == NULL) : (CSGameRules()->m_iMapFactionT == NULL)))))
+		if ( !HasAgentSet( GetTeamNumber() ) && (!CSGameRules()->UseMapFactionsForThisPlayer(this) || CSGameRules()->GetMapFactionsForThisPlayer(this) == -1) )
 		{
 			// Let people change class (skin) by re-joining the same team
 			if ( GetTeamNumber() == TEAM_TERRORIST )
@@ -5936,12 +6040,9 @@ bool CCSPlayer::HandleCommand_JoinTeam( int team )
 		{
 			if ( HasAgentSet(GetTeamNumber()) )
 				HandleCommand_JoinClass( GetCSAgentInfoT( GetAgentID( GetTeamNumber() ) )->m_iClass );
-			else if ( CSGameRules()->UseMapFactionsForThisPlayer(this) && ((GetTeamNumber() == TEAM_CT) ? (CSGameRules()->m_iMapFactionCT != NULL) : (CSGameRules()->m_iMapFactionT != NULL)) )
+			else if ( CSGameRules()->UseMapFactionsForThisPlayer(this) && CSGameRules()->GetMapFactionsForThisPlayer(this) > -1 )
 			{
-				if ( GetTeamNumber() == TEAM_CT )
-					HandleCommand_JoinClass( CSGameRules()->m_iMapFactionCT );
-				else if ( GetTeamNumber() == TEAM_TERRORIST )
-					HandleCommand_JoinClass( CSGameRules()->m_iMapFactionT );
+				HandleCommand_JoinClass( CSGameRules()->GetMapFactionsForThisPlayer(this) );
 			}
 			return true;
 		}
@@ -6868,29 +6969,32 @@ void CCSPlayer::State_Enter_PICKINGCLASS()
 	m_iClass = (int)CS_CLASS_NONE;
 
 	PhysObjectSleep();
-
-	// show the class menu:
-	if ( GetTeamNumber() == TEAM_TERRORIST )
+  
+	if ( CSGameRules()->GetMapFactionsForThisPlayer(this) > -1 )
 	{
-		if ( HasAgentSet( TEAM_TERRORIST ) )
-			HandleCommand_JoinClass( GetCSAgentInfoT( GetAgentID( TEAM_TERRORIST ) )->m_iClass );
-		else if ( CSGameRules()->UseMapFactionsForThisPlayer(this) && (CSGameRules()->m_iMapFactionT != NULL) )
-			HandleCommand_JoinClass( CSGameRules()->m_iMapFactionT );
-		else
-			ShowViewPortPanel( PANEL_CLASS_TER );
-	}
-	else if ( GetTeamNumber() == TEAM_CT )
-	{
-		if ( HasAgentSet( TEAM_CT ) )
-			HandleCommand_JoinClass( GetCSAgentInfoCT( GetAgentID( TEAM_CT ) )->m_iClass );
-		else if ( CSGameRules()->UseMapFactionsForThisPlayer(this) && (CSGameRules()->m_iMapFactionCT != NULL) )
-			HandleCommand_JoinClass( CSGameRules()->m_iMapFactionCT );
-		else
-			ShowViewPortPanel( PANEL_CLASS_CT );
+		HandleCommand_JoinClass( CSGameRules()->GetMapFactionsForThisPlayer(this) );
 	}
 	else
 	{
-		HandleCommand_JoinClass( 0 );
+		// show the class menu:
+		if ( GetTeamNumber() == TEAM_TERRORIST )
+		{
+			if ( HasAgentSet( TEAM_TERRORIST ) )
+				HandleCommand_JoinClass( GetCSAgentInfoT( GetAgentID( TEAM_TERRORIST ) )->m_iClass );
+			else
+				ShowViewPortPanel( PANEL_CLASS_TER );
+		}
+		else if ( GetTeamNumber() == TEAM_CT )
+		{
+			if ( HasAgentSet( TEAM_CT ) )
+				HandleCommand_JoinClass( GetCSAgentInfoCT( GetAgentID( TEAM_CT ) )->m_iClass );
+			else
+				ShowViewPortPanel( PANEL_CLASS_CT );
+		}
+		else
+		{
+			HandleCommand_JoinClass( 0 );
+		}
 	}
 }
 
@@ -7705,6 +7809,9 @@ void CCSPlayer::BuildRebuyStruct()
 	// defuser
 	m_rebuyStruct.m_defuser = HasDefuser();
 
+	// taser
+	m_rebuyStruct.m_taser = (Weapon_OwnsThisType( "weapon_taser" )) ? true : false;
+
 	// night vision
 	m_rebuyStruct.m_nightVision = m_bHasNightVision.Get();	//cast to avoid strange compiler warning
 
@@ -7850,7 +7957,10 @@ BuyResult_e CCSPlayer::RebuySecondaryWeapon()
 
 BuyResult_e CCSPlayer::RebuyTaser()
 {
-	return HandleCommand_Buy( "taser" );
+	if ( m_rebuyStruct.m_taser )
+		return HandleCommand_Buy( "taser" );
+
+	return BUY_INVALID_ITEM;
 }
 /*
 BuyResult_e CCSPlayer::RebuyPrimaryAmmo()
@@ -8313,6 +8423,105 @@ void CCSPlayer::FlashlightTurnOff( void )
 	}
 }
 
+bool CCSPlayer::HandleDropWeapon( CBaseCombatWeapon *pWeapon, bool bSwapping )
+{
+
+	CWeaponCSBase *pCSWeapon = dynamic_cast< CWeaponCSBase* >( pWeapon ? pWeapon : GetActiveWeapon() );
+
+	if( pCSWeapon )
+	{
+/*
+		CBaseCarribleItem *pItem = dynamic_cast< CBaseCarribleItem * >( pCSWeapon );
+		if ( pItem  )
+		{
+			pItem->DropItem();
+				
+			// decrement the ammo
+			pItem->DecrementAmmo( this );
+			// if that was the last item, delete this one
+			if ( pItem->GetCurrentItems() <= 0 )
+			{
+				CSWeaponDrop( pItem, true, true );
+				UTIL_Remove( pItem );
+				UpdateAddonBits();
+			}
+
+			return false;
+		}
+*/
+		
+		// [dwenger] Determine value of dropped item.
+		if ( !pCSWeapon->IsAPriorOwner( this ) )
+		{
+			pCSWeapon->AddToPriorOwnerList( this );
+			CCS_GameStats.IncrementStat(this, CSTAT_ITEMS_DROPPED_VALUE, pCSWeapon->GetCSWpnData().GetWeaponPrice() );
+		}
+
+		// PiMoN: uncomment this when we have healthshots
+		/*if ( pCSWeapon->IsA( WEAPON_HEALTHSHOT ) )
+		{
+			CItem_Healthshot* pHealth = dynamic_cast< CItem_Healthshot* >( pCSWeapon );
+			if ( pHealth )
+			{
+				pHealth->DropHealthshot();
+				ClientPrint( this, HUD_PRINTCENTER, "#Cstrike_TitlesTXT_YouDroppedWeapon", pCSWeapon->GetPrintName() );
+				
+			}
+			return true;
+		}*/
+
+		CSWeaponType type = pCSWeapon->GetWeaponType();
+		switch ( type )
+		{
+		// Only certail weapons can be dropped when drop is initiated by player
+		case WEAPONTYPE_PISTOL:
+		case WEAPONTYPE_SUBMACHINEGUN:
+		case WEAPONTYPE_RIFLE:
+		case WEAPONTYPE_SHOTGUN:
+		case WEAPONTYPE_SNIPER_RIFLE:
+		case WEAPONTYPE_MACHINEGUN:
+		case WEAPONTYPE_C4:
+		{
+			if (CSGameRules()->GetCanDonateWeapon() && !pCSWeapon->GetDonated() )
+			{
+				pCSWeapon->SetDonated(true );
+				pCSWeapon->SetDonor(this );
+			}
+			CSWeaponDrop( pCSWeapon, true, true );
+
+			if ( IsAlive() && !bSwapping )
+				ClientPrint( this, HUD_PRINTCENTER, "#Cstrike_TitlesTXT_YouDroppedWeapon", pCSWeapon->GetPrintName() );
+		}
+		break;
+
+		default:
+		{
+			// let dedicated servers optionally allow droppable knives
+			if ( type == WEAPONTYPE_KNIFE && mp_drop_knife_enable.GetBool( ) )
+			{
+				if ( CSGameRules( )->GetCanDonateWeapon( ) && !pCSWeapon->GetDonated( ) )
+				{
+					pCSWeapon->SetDonated( true );
+					pCSWeapon->SetDonor( this );
+				}
+				CSWeaponDrop( pCSWeapon, true, true );
+
+				if ( IsAlive( ) && !bSwapping )
+					ClientPrint( this, HUD_PRINTCENTER, "#Cstrike_TitlesTXT_YouDroppedWeapon", pCSWeapon->GetPrintName( ) );
+			}
+			else if ( IsAlive( ) && !bSwapping )
+			{
+				ClientPrint( this, HUD_PRINTCENTER, "#Cstrike_TitlesTXT_CannotDropWeapon", pCSWeapon->GetPrintName( ) );
+			}
+		}
+		break;
+		}
+
+		return true;
+	}
+
+	return false;
+}
 
 //Drop the appropriate weapons:
 // Defuser if we have one

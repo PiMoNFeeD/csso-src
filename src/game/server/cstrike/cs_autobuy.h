@@ -50,6 +50,7 @@ struct RebuyStruct
 
 	bool m_defuser;					// do we want a defuser
 	bool m_nightVision;				// do we want night vision
+	bool m_taser;					// do we want taser
 };
 
 extern AutoBuyInfoStruct g_autoBuyInfo[];

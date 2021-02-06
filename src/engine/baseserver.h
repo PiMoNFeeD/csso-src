@@ -71,6 +71,7 @@ public: // IServer implementation
 	virtual float	GetTime( void ) const;
 	virtual int		GetTick( void ) const { return m_nTickCount; }
 	virtual float	GetTickInterval( void ) const { return m_flTickInterval; }
+	virtual float	GetTimescale( void ) const { return m_flTimescale; }
 	virtual const char *GetName( void ) const;
 	virtual const char *GetMapName( void ) const { return m_szMapname; }
 	virtual int		GetSpawnCount( void ) const { return m_nSpawnCount; }
@@ -98,6 +99,7 @@ public: // IServer implementation
 
 	virtual void	SetMaxClients( int number );
 	virtual void	SetPaused(bool paused);
+	virtual void	SetTimescale( float flTimescale );
 	virtual void	SetPassword(const char *password);
 
 	virtual void	DisconnectClient(IClient *client, const char *reason );
@@ -237,6 +239,7 @@ protected:
 									// used to check late spawns (e.g., when d/l'ing lots of
 									// data)
 	float		m_flTickInterval;		// time for 1 tick in seconds
+	float		m_flTimescale;			// the game time scale (multiplied in conjunction with host_timescale)
 
 
 	CUtlVector<CBaseClient*>	m_Clients;		// array of up to [maxclients] client slots.

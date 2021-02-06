@@ -3678,12 +3678,6 @@ bool CAI_BaseNPC::PreNPCThink()
 {
 	static int iPrevFrame = -1;
 	static float frameTimeLimit = FLT_MAX;
-	static const ConVar *pHostTimescale;
-
-	if ( frameTimeLimit == FLT_MAX )
-	{
-		pHostTimescale = cvar->FindVar( "host_timescale" );
-	}
 
 	bool bUseThinkLimits = ( !m_bInChoreo && ShouldUseFrameThinkLimits() );
 
@@ -3706,7 +3700,7 @@ bool CAI_BaseNPC::PreNPCThink()
 		else if ( gpGlobals->framecount != iPrevFrame )
 		{
 			DbgFrameLimitMsg( "--- FRAME: %d (%d)\n", this, gpGlobals->framecount );
-			float timescale = pHostTimescale->GetFloat();
+			float timescale = engine->GetTimescale();
 			if ( timescale < 1 )
 				timescale = 1;
 

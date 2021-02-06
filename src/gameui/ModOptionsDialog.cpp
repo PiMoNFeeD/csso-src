@@ -21,7 +21,7 @@
 
 #include "KeyValues.h"
 #include "ModOptionsSubGameplay.h"
-//#include "ModOptionsSubCrosshair.h"
+#include "ModOptionsSubCrosshair.h"
 #include "ModOptionsSubLoadout.h"
 #include "ModOptionsSubKnives.h"
 #include "ModOptionsSubAgents.h"
@@ -45,7 +45,7 @@ CModOptionsDialog::CModOptionsDialog(vgui::Panel *parent) : PropertyDialog(paren
 	SetTitle("#GameUI_Mod_Options", true);
 
 	AddPage(new CModOptionsSubGameplay(this), "#GameUI_Gameplay");
-	//AddPage(new CModOptionsSubCrosshair(this), "#GameUI_Crosshair"); // TODO: kakashkiiiiiiiiiiiiiiii
+	AddPage(new CModOptionsSubCrosshair(this), "#GameUI_Crosshair");
 	AddPage(new CModOptionsSubLoadout(this), "#GameUI_Loadout");
 	AddPage(new CModOptionsSubKnives(this), "#GameUI_Knives");
 	AddPage(new CModOptionsSubAgents(this), "#GameUI_Agents");

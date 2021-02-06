@@ -62,8 +62,8 @@ void IdleState::OnUpdate( CCSBot *me )
 		// if we have a grenade, use it
 		if (!me->EquipGrenade())
 		{
-			// high-skill bots run with the knife, unless using the Scout (which moves faster)
-			if (me->GetProfile()->GetSkill() > 0.33f && !me->IsUsing( WEAPON_SSG08 ))
+			// high-skill bots run with the knife
+			if (me->GetProfile()->GetSkill() > 0.33f)
 			{
 				me->EquipKnife();
 			}
@@ -260,6 +260,7 @@ void IdleState::OnUpdate( CCSBot *me )
 							{
 								me->SetTask( CCSBot::GUARD_BOMB_DEFUSER );
 								me->Hide( TheNavMesh->GetNavArea( *bombPos ) );
+								me->SetDisposition( CCSBot::OPPORTUNITY_FIRE );
 								return;
 							}
 						}
@@ -267,7 +268,7 @@ void IdleState::OnUpdate( CCSBot *me )
 						{
 							// move to the bomb and defuse it
 							me->SetTask( CCSBot::DEFUSE_BOMB );
-							me->SetDisposition( CCSBot::OPPORTUNITY_FIRE );
+							me->SetDisposition( CCSBot::SELF_DEFENSE );
 							me->MoveTo( *bombPos );
 							return;
 						}

@@ -44,7 +44,7 @@ public:
 	virtual CSWeaponID GetCSWeaponID( void ) const		{ return WEAPON_ELITE; }
 
 #ifdef CLIENT_DLL
-	virtual int GetMuzzleAttachmentIndex( C_BaseAnimating* pAnimating );
+	virtual int GetMuzzleAttachmentIndex( C_BaseAnimating* pAnimating, bool isThirdPerson );
 #endif
 
 	virtual const char		*GetWorldModel( void ) const;
@@ -258,12 +258,25 @@ void CWeaponElite::WeaponIdle()
 
 #ifdef CLIENT_DLL
 
-	int CWeaponElite::GetMuzzleAttachmentIndex( C_BaseAnimating* pAnimating )
+int CWeaponElite::GetMuzzleAttachmentIndex( C_BaseAnimating* pAnimating, bool isThirdPerson )
+{
+	if ( !pAnimating )
+		return -1;
+
+	if ( isThirdPerson )
+	{
+		if ( FiringLeft() )
+			return pAnimating->LookupAttachment( "muzzle_flash2" );
+		else
+			return pAnimating->LookupAttachment( "muzzle_flash" );
+	}
+	else
 	{
 		if ( FiringLeft() )
 			return pAnimating->LookupAttachment( "1" );
 		else
 			return pAnimating->LookupAttachment( "2" );
 	}
+}
 
 #endif

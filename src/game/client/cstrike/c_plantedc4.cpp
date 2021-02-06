@@ -43,16 +43,12 @@ C_PlantedC4::C_PlantedC4()
 
 	m_flNextRadarFlashTime = gpGlobals->curtime;
 	m_bRadarFlash = true;
-	m_pC4Explosion = NULL;
 
 	// Don't beep right away, leave time for the planting sound
 	m_flNextGlow = gpGlobals->curtime + 1.0;
 	m_flNextBeep = gpGlobals->curtime + 1.0;
 
-	if ( UTIL_IsNewYear() )
-	{
-		SetBodygroup( FindBodygroupByName( "gift" ), 1 );
-	}
+	SetBodygroup( FindBodygroupByName( "gift" ), UTIL_IsNewYear() );
 
 	m_hLocalDefusingPlayerHandle = NULL;
 }
@@ -61,19 +57,6 @@ C_PlantedC4::C_PlantedC4()
 C_PlantedC4::~C_PlantedC4()
 {
 	g_PlantedC4s.FindAndRemove( this );
-	//=============================================================================
-	// HPE_BEGIN:
-	// [menglish] Upon the new round remove the remaining bomb explosion particle effect
-	//=============================================================================
-	
-	if (m_pC4Explosion)
-	{
-		m_pC4Explosion->SetRemoveFlag();
-	}
-	 
-	//=============================================================================
-	// HPE_END
-	//=============================================================================
 }
 
 void C_PlantedC4::SetDormant( bool bDormant )
@@ -103,10 +86,7 @@ void C_PlantedC4::Spawn( void )
 {
 	BaseClass::Spawn();
 
-	if ( UTIL_IsNewYear() )
-	{
-		SetBodygroup( FindBodygroupByName( "gift" ), 1 );
-	}
+	SetBodygroup( FindBodygroupByName( "gift" ), UTIL_IsNewYear() );
 
 	SetNextClientThink( CLIENT_THINK_ALWAYS );
 
@@ -332,7 +312,6 @@ void C_PlantedC4::ClientThink( void )
 //=============================================================================
 void C_PlantedC4::Explode( void )
 {
-	m_pC4Explosion = ParticleProp()->Create( "bomb_explosion_huge", PATTACH_ABSORIGIN );
 	AddEffects( EF_NODRAW );
 	SetDormant( true );
 }

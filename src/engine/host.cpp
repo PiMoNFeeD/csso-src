@@ -565,6 +565,7 @@ bool		host_initialized = false;		// true if into command execution
 float		host_frametime = 0.0f;
 float		host_frametime_unbounded = 0.0f;
 float		host_frametime_stddeviation = 0.0f;
+float		host_frametime_unscaled = 0.0f;
 double		realtime = 0;			// without any filtering or bounding
 double		host_idealtime = 0;		// "ideal" server time assuming perfect tick rate
 float		host_nexttick = 0;		// next server tick in this many ms
@@ -582,8 +583,8 @@ jmp_buf     host_enddemo;
 static ConVar	host_profile( "host_profile","0" );
 
 ConVar	host_limitlocal( "host_limitlocal", "0", 0, "Apply cl_cmdrate and cl_updaterate to loopback connection" );
-ConVar	host_framerate( "host_framerate","0", 0, "Set to lock per-frame time elapse." );
-ConVar	host_timescale( "host_timescale","1.0", FCVAR_REPLICATED, "Prescale the clock by this amount." );
+ConVar	host_framerate( "host_framerate", "0", FCVAR_REPLICATED | FCVAR_CHEAT, "Set to lock per-frame time elapse." );
+ConVar	host_timescale( "host_timescale", "1.0", FCVAR_REPLICATED | FCVAR_CHEAT, "Prescale the clock by this amount." );
 ConVar	host_speeds( "host_speeds","0", 0, "Show general system running times." );		// set for running times
 
 ConVar	host_flush_threshold( "host_flush_threshold", "20", 0, "Memory threshold below which the host should flush caches between server instances" );
@@ -1846,9 +1847,8 @@ void Host_AccumulateTime( float dt )
 {
 	// Accumulate some time
 	realtime += dt;
-
 	bool bUseNormalTickTime = true;
-#if !defined(SWDS)
+#if !defined(DEDICATED)
 	if ( demoplayer->IsPlayingTimeDemo() )
 		bUseNormalTickTime = false;
 #endif
@@ -1865,47 +1865,61 @@ void Host_AccumulateTime( float dt )
 		host_frametime	= host_state.interval_per_tick;
 	}
 
-#if 1
-	if ( host_framerate.GetFloat() > 0 
-#if !defined(SWDS)
-		&& ( CanCheat() || demoplayer->IsPlayingBack() ) 
+	float flHostTimescale = 1.0f;
+	float flGameTimescale = 1.0f;
+
+	if ( host_timescale.GetFloat() > 0.0f 
+#if !defined(DEDICATED)
+		&& CanCheat() 
 #endif
 		)
 	{
+		// We are allowed to modify this convar!
+		flHostTimescale = host_timescale.GetFloat();
+	}
+
+	if ( flGameTimescale > 0.0f )
+	{
+		flGameTimescale = sv.GetTimescale();
+	}
+
+	float fullscale = flHostTimescale * flGameTimescale;
+
+#if !defined(DEDICATED)
+	if ( demoplayer->IsPlayingBack() )
+	{
+		// adjust time scale if playing back demo
+		fullscale *= demoplayer->GetPlaybackTimeScale();
+	}
+#endif
+
+#if 1
+	if ( host_framerate.GetFloat() != 0 
+#if !defined(DEDICATED)
+		&& ( CanCheat() || demoplayer->IsPlayingBack() ) 
+#endif
+		)
+	{	
 		float fps = host_framerate.GetFloat();
 		if ( fps > 1 )
 		{
 			fps = 1.0f/fps;
 		}
+		else if ( fps < -1 )
+		{
+			fps = 1.0f/fabsf(fps);
+			if ( fps > dt )
+			{
+				fps = dt;
+			}
+		}
 		host_frametime = fps;
-
-#if !defined(SWDS) && defined( REPLAY_ENABLED )
-		extern IDemoPlayer *g_pReplayDemoPlayer;
-		if ( demoplayer->IsPlayingBack() && demoplayer == g_pReplayDemoPlayer )
-		{
-			// adjust time scale if playing back demo
-			host_frametime *= demoplayer->GetPlaybackTimeScale();
-		}
-#endif
-
 		host_frametime_unbounded = host_frametime;
+		host_frametime_unscaled = host_frametime;
 	}
-	else if (host_timescale.GetFloat() > 0 
-#if !defined(SWDS)
-		&& ( CanCheat() || demoplayer->IsPlayingBack() ) 
-#endif
-		)
+	else if ( fullscale != 1.0f )
 	{
-		float fullscale = host_timescale.GetFloat();
-
-#if !defined(SWDS)
-		if ( demoplayer->IsPlayingBack() )
-		{
-			// adjust time scale if playing back demo
-			fullscale *= demoplayer->GetPlaybackTimeScale();
-		}
-#endif
-
+		host_frametime_unscaled = host_frametime;
 		host_frametime *= fullscale;
 
 		host_frametime_unbounded = host_frametime;
@@ -1913,32 +1927,46 @@ void Host_AccumulateTime( float dt )
 #ifndef NO_TOOLFRAMEWORK
 		if ( CommandLine()->CheckParm( "-tools" ) == NULL )
 		{
-#endif
-			host_frametime = min( (double)host_frametime, MAX_FRAMETIME * fullscale);
+#endif // !NO_TOOLFRAMEWORK
+			host_frametime = MIN( host_frametime, MAX_FRAMETIME * fullscale);
+			host_frametime_unscaled = MIN( host_frametime_unscaled, MAX_FRAMETIME );
+			host_frametime_unscaled = MAX( host_frametime_unscaled, MIN_FRAMETIME );
 #ifndef NO_TOOLFRAMEWORK
 		}
-#endif
+		else
+		{
+			host_frametime = MIN( host_frametime, MAX_TOOLS_FRAMETIME * fullscale);
+			host_frametime_unscaled = MIN( host_frametime_unscaled, MAX_TOOLS_FRAMETIME );
+			host_frametime_unscaled = MAX( host_frametime_unscaled, MIN_TOOLS_FRAMETIME );
+		}
+#endif // !NO_TOOLFRAMEWORK
 	}
 	else
 #ifndef NO_TOOLFRAMEWORK
 		if ( CommandLine()->CheckParm( "-tools" ) != NULL )
 		{
 			host_frametime_unbounded = host_frametime;
+			host_frametime = MIN( host_frametime, MAX_TOOLS_FRAMETIME );
+			host_frametime = MAX( host_frametime, MIN_TOOLS_FRAMETIME );
+			host_frametime_unscaled = host_frametime;
 		}
 		else
 #endif // !NO_TOOLFRAMEWORK
 	{	// don't allow really long or short frames
 		host_frametime_unbounded = host_frametime;
-		host_frametime = min( (double)host_frametime, MAX_FRAMETIME );
-		host_frametime = max( (double)host_frametime, MIN_FRAMETIME );
+		host_frametime = MIN( host_frametime, MAX_FRAMETIME );
+		host_frametime = MAX( host_frametime, MIN_FRAMETIME );
+		host_frametime_unscaled = host_frametime;
 	}
-#endif
+#endif // 1
 
 	// Adjust the client clock very slightly to keep it in line with the server clock.
+#ifndef DEDICATED
 	float adj = cl.GetClockDriftMgr().AdjustFrameTime( host_frametime ) - host_frametime;
 	host_frametime += adj;
 	host_frametime_unbounded += adj;
-
+	host_frametime_unscaled += adj;
+#endif
 	if ( g_pSoundServices )									// not present on linux server
 		g_pSoundServices->SetSoundFrametime(dt, host_frametime);
 

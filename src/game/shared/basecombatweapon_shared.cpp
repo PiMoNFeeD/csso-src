@@ -659,8 +659,6 @@ void CBaseCombatWeapon::Spawn( void )
 	// been hand-placed by level designers. We only want to remove
 	// weapons that have been dropped by NPC's.
 	SetRemoveable( false );
-
-	CreateWeaponWorldModel();
 #endif
 
 	// Bloat the box for player pickup
@@ -1946,13 +1944,12 @@ selects and deploys each weapon as you pass it. (sjb)
 bool CBaseCombatWeapon::Deploy( )
 {
 	MDLCACHE_CRITICAL_SECTION();
+	bool bResult = DefaultDeploy( (char*)GetViewModel(), (char*)GetWorldModel(), GetDrawActivity(), (char*)GetAnimPrefix() );
 
-#if !defined( CLIENT_DLL )
-	CreateWeaponWorldModel();
-	ShowWeaponWorldModel( false ); // don't show right away, wait for the deploy anim to unhide it
-#endif
+	// override pose parameters
+	PoseParameterOverride( false );
 
-	return DefaultDeploy( (char*)GetViewModel(), (char*)GetWorldModel(), GetDrawActivity(), (char*)GetAnimPrefix() );
+	return bResult;
 }
 
 Activity CBaseCombatWeapon::GetDrawActivity( void )
@@ -1966,10 +1963,6 @@ Activity CBaseCombatWeapon::GetDrawActivity( void )
 bool CBaseCombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo )
 { 
 	MDLCACHE_CRITICAL_SECTION();
-
-#if !defined( CLIENT_DLL )
-	ShowWeaponWorldModel( false );
-#endif
 
 	// cancel any reload in progress.
 	m_bInReload = false; 

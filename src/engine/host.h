@@ -75,6 +75,7 @@ extern	ConVar		developer;
 extern	bool		host_initialized;		// true if into command execution
 extern	float		host_frametime;
 extern  float		host_frametime_unbounded;
+extern  float		host_frametime_unscaled;
 extern  float		host_frametime_stddeviation;
 extern	int			host_framecount;	// incremented every frame, never reset
 extern	double		realtime;			// not bounded in any way, changed at
@@ -153,6 +154,8 @@ extern int	host_currentframetick;
 
 #define MAX_FRAMETIME	0.1
 #define MIN_FRAMETIME	0.001
+#define MAX_TOOLS_FRAMETIME	2.0
+#define MIN_TOOLS_FRAMETIME	0.001
 
 #define TIME_TO_TICKS( dt )		( (int)( 0.5f + (float)(dt) / host_state.interval_per_tick ) )
 #define TICKS_TO_TIME( dt )		( host_state.interval_per_tick * (float)(dt) )

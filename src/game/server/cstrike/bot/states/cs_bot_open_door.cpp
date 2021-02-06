@@ -24,7 +24,7 @@
 void OpenDoorState::OnEnter( CCSBot *me )
 {
 	m_isDone = false;
-	m_timeout.Start( 1.0f );
+	m_timeout.Start( 0.5f );
 }
 
 

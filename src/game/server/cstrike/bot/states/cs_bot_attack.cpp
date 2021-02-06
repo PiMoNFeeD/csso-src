@@ -13,6 +13,23 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+
+//
+// Various tweakable parameters which control overall bot behavior.
+// Note[pmf]: I moved them all to the top of the file together so it's easier to get a sense of how they interact
+//
+const float crouchFarRange = 750.0f;	// 50% (increased) chance to crouch when enemy is farther than this
+const float hysterisRange = 125.0f;		// (+/-) m_combatRange, used to control dodging
+const float dodgeRange = 2000.0f;		// maximum range from enemy to consider dodging
+const float jumpChance = 33.3f;			// chance of low-skill to jump when first engaging the enemy (if they are moving)
+const float lookAheadRange = 30.0f;		// how far L/R to consider whether we can fall while strafing
+const float sniperMinRange = 160.0f;	// what distance to switch to pistol if enemy is too close. Must be larger than NO_ZOOM range in AdjustZoom()
+const float shotgunMaxRange = 600.0f;	// what distance to switch to pistol if enemy is too far
+const float slashRange = 70.0f;			// when using knife, repath to enemy if they are farther than this
+const float repathInterval = 0.5f;
+const float repathRange = 100.0f;		// repath when enemy has moved this far from our current path endpoint
+
+
 //--------------------------------------------------------------------------------------------------------------
 /**
  * Begin attacking
@@ -70,7 +87,6 @@ void AttackState::OnEnter( CCSBot *me )
 		{
 			if (enemy)
 			{
-				const float crouchFarRange = 750.0f;
 				float crouchChance;
 				
 				// more likely to crouch if using sniper rifle or if enemy is far away
@@ -169,8 +185,6 @@ void AttackState::Dodge( CCSBot *me )
 		Vector toEnemy = enemy->GetAbsOrigin() - me->GetAbsOrigin();
 		float range = toEnemy.Length();
 
-		const float hysterisRange = 125.0f;		// (+/-) m_combatRange
-
 		float minRange = me->GetCombatRange() - hysterisRange;
 		float maxRange = me->GetCombatRange() + hysterisRange;
 
@@ -190,7 +204,6 @@ void AttackState::Dodge( CCSBot *me )
 		}
 
 		// don't dodge if enemy is facing away
-		const float dodgeRange = 2000.0f;
 		if (!me->CanSeeSniper() && (range > dodgeRange || !me->IsPlayerFacingMe( enemy )))
 		{
 			m_dodgeState = STEADY_ON;
@@ -219,7 +232,6 @@ void AttackState::Dodge( CCSBot *me )
 				do
 				{
 					// low-skill bots may jump when first engaging the enemy (if they are moving)
-					const float jumpChance = 33.3f;
 					if (m_firstDodge && me->GetProfile()->GetSkill() < 0.5f && RandomFloat( 0, 100 ) < jumpChance && !me->IsNotMoving())
 						next = RandomInt( 0, NUM_ATTACK_STATES-1 );
 					else
@@ -237,7 +249,6 @@ void AttackState::Dodge( CCSBot *me )
 		Vector forward, right;
 		me->EyeVectors( &forward, &right );
 
-		const float lookAheadRange = 30.0f;
 		float ground;
 
 		switch( m_dodgeState )
@@ -407,16 +418,12 @@ void AttackState::OnUpdate( CCSBot *me )
 		me->FireWeaponAtEnemy();
 
 		// if toe to toe with our enemy, don't dodge, just slash
-		const float slashRange = 70.0f;
 		if ((enemy->GetAbsOrigin() - me->GetAbsOrigin()).IsLengthGreaterThan( slashRange ))
 		{
-			const float repathInterval = 0.5f;
-
 			// if our victim has moved, repath
 			bool repath = false;
 			if (me->HasPath())
 			{
-				const float repathRange = 100.0f;		// 50
 				if ((me->GetPathEndpoint() - enemy->GetAbsOrigin()).IsLengthGreaterThan( repathRange ))
 				{
 					repath = true;
@@ -487,14 +494,12 @@ void AttackState::OnUpdate( CCSBot *me )
 	if (me->IsUsingSniperRifle())
 	{
 		// if we have a sniper rifle and our enemy is too close, switch to pistol
-		const float sniperMinRange = 160.0f;	// NOTE: Must be larger than NO_ZOOM range in AdjustZoom()
 		if ((enemyOrigin - myOrigin).IsLengthLessThan( sniperMinRange ))
 			me->EquipPistol();
 	}
 	else if (me->IsUsingShotgun())
 	{
 		// if we have a shotgun equipped and enemy is too far away, switch to pistol
-		const float shotgunMaxRange = 600.0f;
 		if ((enemyOrigin - myOrigin).IsLengthGreaterThan( shotgunMaxRange ))
 			me->EquipPistol();
 	}
@@ -509,7 +514,7 @@ void AttackState::OnUpdate( CCSBot *me )
 			return;
 		}
 
-		Vector toAimSpot3D = me->m_aimSpot - myOrigin;
+		Vector toAimSpot3D = me->m_targetSpot - myOrigin;
 		float targetRange = toAimSpot3D.Length();
 
 		// dont adjust zoom level if we're already zoomed in - just fire

@@ -848,7 +848,6 @@ $Project
 		$File	"globals.h"
 		$File	"$SRCDIR\public\globalvars_base.h"
 		$File	"$SRCDIR\game\shared\groundlink.h"
-		$File	"$SRCDIR\game\shared\hl2\hl2_vehicle_radar.h"
 		$File	"$SRCDIR\public\iachievementmgr.h"
 		$File	"$SRCDIR\public\appframework\IAppSystem.h"
 		$File	"$SRCDIR\public\icliententity.h"
