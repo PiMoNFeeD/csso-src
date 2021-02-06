@@ -181,10 +181,6 @@ public:
 	bool IsLogoMap() const;
 	bool IsSpawnPointValid( CBaseEntity *pSpot, CBasePlayer *pPlayer );
 
-#ifndef CLIENT_DLL
-	bool UseMapFactionsForThisPlayer( CBasePlayer* pPlayer );
-#endif
-
 	bool IsBuyTimeElapsed();
 	bool IsMatchWaitingForResume( void );
 	void SetMatchWaitingForResume( bool pause ) { m_bMatchWaitingForResume = pause; };

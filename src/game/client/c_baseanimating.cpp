@@ -3700,8 +3700,6 @@ void C_BaseAnimating::DoAnimationEvents( CStudioHdr *pStudioHdr )
 	}
 #endif
 
-#endif
-
 	// If we're invisible, don't process animation events.
 	if ( bIsInvisible )
 		return;
@@ -6106,15 +6104,6 @@ bool C_BaseAnimating::DoesModelSupportGloves()
 	return (FindBodygroupByName( "gloves" ) > -1) ? true : false;
 #endif
 
-	return false;
-}
-
-bool C_BaseAnimating::DoesModelSupportGloves()
-{
-#ifdef CSTRIKE_DLL
-	return (FindBodygroupByName( "gloves" ) > -1) ? true : false;
-#endif
-	
 	return false;
 }
 

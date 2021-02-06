@@ -253,8 +253,6 @@ void CPredictedViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& e
 #if IRONSIGHT
 	CalcIronsightView( eyePosition, eyeAngles );
 #endif
-
-	BaseClass::CalcViewModelView( owner, vecNewOrigin, vecNewAngles );
 #endif //CLIENT_DLL
 }
 
