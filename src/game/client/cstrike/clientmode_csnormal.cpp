@@ -1383,7 +1383,10 @@ void UpdateBuyMenuImageEntity(
 	pPlayerModel->SetAbsAngles( QAngle( 0, 180, 0 ) );
 
 	// now set the sequence for this player model
-	pPlayerModel->SetSequence( pPlayerModel->LookupSequence( pWeaponSequence ) );
+	if ( pLocalPlayer->GetTeamNumber() == TEAM_TERRORIST && pAnimNameT != NULL )
+		pPlayerModel->SetSequence( pPlayerModel->LookupSequence( pAnimNameT ) );
+	else if ( pAnimName != NULL )
+		pPlayerModel->SetSequence( pPlayerModel->LookupSequence( pAnimName ) );
 
 	pPlayerModel->FrameAdvance( gpGlobals->frametime );
 
@@ -1533,9 +1536,8 @@ void ClientModeCSNormal::PostRenderVGui()
 			const char *szModelName = NULL;
 			if ( V_strcmp( pPanel->m_ModelName, "fiveseven_cz75" ) == 0 )
 			{
-				szAnimName = "UI_BuyMenu_pistol";
-				szModelName = !loadout_slot_fiveseven_weapon.GetBool() ? "models/weapons/w_pist_fiveseven.mdl" : "models/weapons/w_pist_cz_75.mdl";
-				UpdateBuyMenuImageEntity( szModelName, szAnimName, x, y, w, h, pPanel->m_ViewXPos, pPanel->m_ViewYPos, pPanel->m_ViewZPos );
+				szWeaponName = !loadout_slot_fiveseven_weapon.GetBool() ? "weapon_fiveseven" : "weapon_cz75";
+				UpdateBuyMenuImageEntity( szWeaponName, x, y, w, h, pPanel->m_ViewXPos, pPanel->m_ViewYPos, pPanel->m_ViewZPos );
 				return;
 			}
 			else if ( V_strcmp( pPanel->m_ModelName, "hkp2000_usp" ) == 0 )

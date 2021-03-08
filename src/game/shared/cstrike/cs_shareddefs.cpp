@@ -192,13 +192,13 @@ const char* TLeetPlayerModelStrings[] =
 	"models/player/custom_player/legacy/tm_leet_variantE.mdl",
 
 };
-const char* TSeparatistPlayerModelStrings[] =
+const char *TSeparatistPlayerModelStrings[] =
 {
-	"models/player/tm_separatist.mdl",
-	"models/player/tm_separatist_varianta.mdl",
-	"models/player/tm_separatist_variantb.mdl",
-	"models/player/tm_separatist_variantc.mdl",
-	"models/player/tm_separatist_variantd.mdl",
+	"models/player/custom_player/legacy/tm_separatist.mdl",
+	"models/player/custom_player/legacy/tm_separatist_varianta.mdl",
+	"models/player/custom_player/legacy/tm_separatist_variantb.mdl",
+	"models/player/custom_player/legacy/tm_separatist_variantc.mdl",
+	"models/player/custom_player/legacy/tm_separatist_variantd.mdl",
 };
 const char* TBalkanPlayerModelStrings[] =
 {
